@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Officer Dashboard - CCRSMS</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3B82F6',
+                        secondary: '#F3F4F6',
+                        dark: '#1F2937',
+                        accent: '#F59E0B',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100">
+    <div class="flex">
+        <!-- Sidebar -->
+        <aside
+            class="bg-white border-r border-gray-200 min-h-screen flex flex-col fixed left-0 top-0 h-full z-10 transition-all duration-300 w-64">
+            <div class="p-4 border-b border-gray-100 flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold text-blue-600">CCRSMS</h1>
+                    <p class="text-xs text-gray-500 uppercase tracking-wider mt-1">Officer Portal</p>
+                </div>
+            </div>
+
+            <nav class="flex-grow p-3 space-y-2 overflow-y-auto overflow-x-hidden">
+                <a href="dashboard.html"
+                    class="flex items-center gap-3 px-3 py-3 rounded-lg transition-colors font-medium whitespace-nowrap bg-blue-50 text-blue-600">
+                    <i class="fas fa-tachometer-alt text-lg flex-shrink-0"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#"
+                    class="flex items-center gap-3 px-3 py-3 rounded-lg transition-colors font-medium whitespace-nowrap text-gray-600 hover:bg-gray-50 hover:text-gray-900">
+                    <i class="fas fa-clipboard-list text-lg flex-shrink-0"></i>
+                    <span>Assigned Complaints</span>
+                </a>
+                <a href="#"
+                    class="flex items-center gap-3 px-3 py-3 rounded-lg transition-colors font-medium whitespace-nowrap text-gray-600 hover:bg-gray-50 hover:text-gray-900">
+                    <i class="fas fa-tasks text-lg flex-shrink-0"></i>
+                    <span>Field Tasks</span>
+                </a>
+                <a href="#"
+                    class="flex items-center gap-3 px-3 py-3 rounded-lg transition-colors font-medium whitespace-nowrap text-gray-600 hover:bg-gray-50 hover:text-gray-900">
+                    <i class="fas fa-bell text-lg flex-shrink-0"></i>
+                    <span>Notifications</span>
+                </a>
+                <a href="#"
+                    class="flex items-center gap-3 px-3 py-3 rounded-lg transition-colors font-medium whitespace-nowrap text-gray-600 hover:bg-gray-50 hover:text-gray-900">
+                    <i class="fas fa-user text-lg flex-shrink-0"></i>
+                    <span>My Profile</span>
+                </a>
+            </nav>
+
+            <div class="p-4 border-t border-gray-100">
+                <form method="post" action="{% url 'staff_logout' %}">
+                    {% csrf_token %}
+                    <button type="submit"
+                        class="flex items-center gap-3 px-3 py-3 rounded-lg text-red-600 hover:bg-red-50 w-full font-medium transition-colors whitespace-nowrap">
+                        <i class="fas fa-sign-out-alt text-lg flex-shrink-0"></i>
+                        <span>Logout</span>
+                    </button>
+                </form>
+            </div>
+
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-grow bg-gray-100 min-h-screen p-8 ml-64">
+            <header class="mb-8">
+                <h1 class="text-3xl font-bold text-gray-900">Officer Dashboard</h1>
+                <p class="text-gray-500">Welcome back, Officer. Here's your daily overview.</p>
+            </header>
+
+            <!-- KPI Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <!-- Stat 1 -->
+                <div
+                    class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex items-center gap-4 hover:shadow-md transition-shadow">
+                    <div class="p-4 rounded-full bg-blue-100 text-blue-600 text-2xl">
+                        <i class="fas fa-clipboard-list"></i>
+                    </div>
+                    <div>
+                        <p class="text-gray-500 text-sm font-medium">Assigned Complaints</p>
+                        <h3 class="text-2xl font-bold text-gray-900">12</h3>
+                    </div>
+                </div>
+
+                <!-- Stat 2 -->
+                <div
+                    class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex items-center gap-4 hover:shadow-md transition-shadow">
+                    <div class="p-4 rounded-full bg-yellow-100 text-yellow-600 text-2xl">
+                        <i class="fas fa-spinner"></i>
+                    </div>
+                    <div>
+                        <p class="text-gray-500 text-sm font-medium">In Progress</p>
+                        <h3 class="text-2xl font-bold text-gray-900">5</h3>
+                    </div>
+                </div>
+
+                <!-- Stat 3 -->
+                <div
+                    class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex items-center gap-4 hover:shadow-md transition-shadow">
+                    <div class="p-4 rounded-full bg-green-100 text-green-600 text-2xl">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div>
+                        <p class="text-gray-500 text-sm font-medium">Resolved</p>
+                        <h3 class="text-2xl font-bold text-gray-900">45</h3>
+                    </div>
+                </div>
+
+                <!-- Stat 4 -->
+                <div
+                    class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex items-center gap-4 hover:shadow-md transition-shadow">
+                    <div class="p-4 rounded-full bg-red-100 text-red-600 text-2xl">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div>
+                        <p class="text-gray-500 text-sm font-medium">Pending</p>
+                        <h3 class="text-2xl font-bold text-gray-900">3</h3>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid lg:grid-cols-3 gap-8">
+                <!-- Announcements -->
+                <div class="lg:col-span-2 space-y-6">
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                        <h3 class="text-lg font-bold text-gray-900 mb-4">Announcements</h3>
+                        <div class="space-y-4">
+                            <div class="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-600">
+                                <h4 class="font-bold text-blue-600">Heavy Rain Alert</h4>
+                                <p class="text-sm text-gray-600 mt-1">Expect increased drainage complaints in Zone 4 due
+                                    to forecasted heavy rains. Prioritize clearing blockage reports.</p>
+                                <span class="text-xs text-gray-400 mt-2 block">2 hours ago</span>
+                            </div>
+                            <div class="bg-gray-50 p-4 rounded-lg border-l-4 border-gray-400">
+                                <h4 class="font-bold text-gray-800">System Maintenance</h4>
+                                <p class="text-sm text-gray-600 mt-1">The reporting system will undergo maintenance on
+                                    Sunday from 2 AM to 4 AM.</p>
+                                <span class="text-xs text-gray-400 mt-2 block">1 day ago</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                        <h3 class="text-lg font-bold text-gray-900 mb-4">Quick Actions</h3>
+                        <div class="flex gap-4">
+                            <button
+                                class="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors">
+                                Start Field Assignment
+                            </button>
+                            <button
+                                class="flex-1 bg-white border border-gray-300 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-50 transition-colors">
+                                View Pending Tasks
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Profile Summary -->
+                <div>
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 text-center">
+                        <div
+                            class="w-24 h-24 bg-gray-200 rounded-full mx-auto mb-4 overflow-hidden flex items-center justify-center">
+                            <!-- Placeholder Image -->
+                            <i class="fas fa-user text-4xl text-gray-400"></i>
+                        </div>
+                        {% if request.user.is_authenticated %}
+                        <h3 class="text-xl font-bold text-gray-900"> {{request.user.first_name}}
+                            {{request.user.last_name}}</h3>
+                        <p class="text-blue-600 font-medium mb-1">{{request.user.staffprofile.role}}</p>
+                        <p class="text-gray-500 text-sm mb-6">Ward - {{request.user.ward}}</p>
+                        {% endif %}
+
+                        <div class="flex justify-center gap-4 text-center border-t border-gray-100 pt-6">
+                            <div>
+                                <span class="block text-xl font-bold text-gray-900">125</span>
+                                <span class="text-xs text-gray-500">Resolved</span>
+                            </div>
+                            <div>
+                                <span class="block text-xl font-bold text-gray-900">4.8</span>
+                                <span class="text-xs text-gray-500">Rating</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</body>
+
+</html>
