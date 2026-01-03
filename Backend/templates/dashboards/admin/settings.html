@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - Admin Portal</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3B82F6',
+                        secondary: '#F3F4F6',
+                        dark: '#1F2937',
+                        accent: '#F59E0B',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .tab-btn.active {
+            background-color: #eff6ff;
+            /* bg-blue-50 */
+            color: #2563eb;
+            /* text-blue-600 */
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 font-sans">
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <aside
+            class="bg-gray-800 text-white shadow-xl h-screen flex flex-col sticky top-0 transition-all duration-300 w-64 flex-shrink-0">
+            <div class="p-6 border-b border-gray-700 flex items-center justify-between">
+                <h2 class="text-xl font-bold flex items-center gap-2 whitespace-nowrap overflow-hidden">
+                    <span class="bg-yellow-500 text-gray-900 p-1 rounded text-sm font-extrabold">AP</span>
+                    Admin Portal
+                </h2>
+            </div>
+
+            <nav class="flex-1 p-3 space-y-2 overflow-y-auto overflow-x-hidden">
+                <a href="dashboard.html"
+                    class="flex items-center gap-3 px-3 py-3 rounded-lg transition-colors font-medium whitespace-nowrap text-gray-400 hover:bg-gray-700 hover:text-white">
+                    <i class="fas fa-tachometer-alt text-xl flex-shrink-0"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="complaints.html"
+                    class="flex items-center gap-3 px-3 py-3 rounded-lg transition-colors font-medium whitespace-nowrap text-gray-400 hover:bg-gray-700 hover:text-white">
+                    <i class="fas fa-clipboard-list text-xl flex-shrink-0"></i>
+                    <span>Complaints</span>
+                </a>
+                <a href="#"
+                    class="flex items-center gap-3 px-3 py-3 rounded-lg transition-colors font-medium whitespace-nowrap text-gray-400 hover:bg-gray-700 hover:text-white">
+                    <i class="fas fa-file-contract text-xl flex-shrink-0"></i>
+                    <span>Permits</span>
+                </a>
+                <a href="assign-staff.html"
+                    class="flex items-center gap-3 px-3 py-3 rounded-lg transition-colors font-medium whitespace-nowrap text-gray-400 hover:bg-gray-700 hover:text-white">
+                    <i class="fas fa-user-shield text-xl flex-shrink-0"></i>
+                    <span>Assign Staff</span>
+                </a>
+                <a href="users.html"
+                    class="flex items-center gap-3 px-3 py-3 rounded-lg transition-colors font-medium whitespace-nowrap text-gray-400 hover:bg-gray-700 hover:text-white">
+                    <i class="fas fa-users text-xl flex-shrink-0"></i>
+                    <span>Users</span>
+                </a>
+                <a href="analytics.html"
+                    class="flex items-center gap-3 px-3 py-3 rounded-lg transition-colors font-medium whitespace-nowrap text-gray-400 hover:bg-gray-700 hover:text-white">
+                    <i class="fas fa-chart-bar text-xl flex-shrink-0"></i>
+                    <span>Analytics</span>
+                </a>
+                <a href="settings.html"
+                    class="flex items-center gap-3 px-3 py-3 rounded-lg transition-colors font-medium whitespace-nowrap bg-blue-600 text-white shadow-md">
+                    <i class="fas fa-cog text-xl flex-shrink-0"></i>
+                    <span>Settings</span>
+                </a>
+            </nav>
+
+            <div class="p-4 border-t border-gray-700">
+                <button
+                    class="flex items-center gap-3 px-3 py-3 w-full text-red-400 hover:bg-red-900/20 rounded-lg transition-colors font-medium whitespace-nowrap">
+                    <i class="fas fa-sign-out-alt text-xl flex-shrink-0"></i>
+                    <span>Logout</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-grow bg-gray-100 h-screen overflow-y-auto p-8">
+            <div class="max-w-7xl mx-auto">
+                <header class="mb-8">
+                    <h1 class="text-3xl font-bold text-gray-900">System Settings</h1>
+                    <p class="text-gray-500">Configure system parameters and preferences.</p>
+                </header>
+
+                <div class="flex flex-col lg:flex-row gap-8">
+                    <!-- Sidebar Navigation -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 lg:w-1/4 h-fit p-4">
+                        <nav class="space-y-1">
+                            <button onclick="openTab('general')"
+                                class="tab-btn active w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left font-medium transition-colors text-gray-600 hover:bg-gray-50 hover:text-gray-900">
+                                <i class="fas fa-globe"></i> General
+                            </button>
+                            <button onclick="openTab('accounts')"
+                                class="tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left font-medium transition-colors text-gray-600 hover:bg-gray-50 hover:text-gray-900">
+                                <i class="fas fa-user-cog"></i> Accounts & Roles
+                            </button>
+                            <button onclick="openTab('security')"
+                                class="tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left font-medium transition-colors text-gray-600 hover:bg-gray-50 hover:text-gray-900">
+                                <i class="fas fa-shield-alt"></i> Security
+                            </button>
+                            <button onclick="openTab('notifications')"
+                                class="tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left font-medium transition-colors text-gray-600 hover:bg-gray-50 hover:text-gray-900">
+                                <i class="fas fa-bell"></i> Notifications
+                            </button>
+                        </nav>
+                    </div>
+
+                    <!-- Content Area -->
+                    <div class="lg:w-3/4">
+                        <!-- General Tab -->
+                        <div id="general" class="tab-content active space-y-6">
+                            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                                <h3 class="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                                    <i class="fas fa-globe text-blue-500"></i> General Information
+                                </h3>
+                                <div class="grid md:grid-cols-2 gap-6">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">System Name</label>
+                                        <input type="text" value="CCRSMS"
+                                            class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Organization</label>
+                                        <input type="text" value="Freetown City Council"
+                                            class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Support
+                                            Email</label>
+                                        <input type="email" value="support@fcc.gov.sl"
+                                            class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Contact
+                                            Phone</label>
+                                        <input type="text" value="+232 76 000 000"
+                                            class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+                                    </div>
+                                    <div class="col-span-2">
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Organization
+                                            Address</label>
+                                        <textarea
+                                            class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                            rows="3">12 Wallace Johnson Street, Freetown, Sierra Leone</textarea>
+                                    </div>
+                                </div>
+                                <div class="mt-6 flex justify-end">
+                                    <button
+                                        class="bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-lg font-medium transition-colors">Save
+                                        Changes</button>
+                                </div>
+                            </div>
+                            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                                <h3 class="text-xl font-bold text-gray-900 mb-6">Localization</h3>
+                                <div class="grid md:grid-cols-2 gap-6">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Timezone</label>
+                                        <select class="w-full border border-gray-300 rounded-lg p-2 bg-white">
+                                            <option>GMT (Greenwich Mean Time)</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Currency</label>
+                                        <select class="w-full border border-gray-300 rounded-lg p-2 bg-white">
+                                            <option>SLE (Sierra Leonean Leone)</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Language</label>
+                                        <select class="w-full border border-gray-300 rounded-lg p-2 bg-white">
+                                            <option>English (UK)</option>
+                                            <option>Krio</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Accounts Tab -->
+                        <div id="accounts" class="tab-content space-y-6">
+                            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                                <h3 class="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                                    <i class="fas fa-user-cog text-blue-500"></i> User Policies
+                                </h3>
+                                <div class="space-y-4">
+                                    <div
+                                        class="flex items-center justify-between p-4 border border-gray-200 rounded-lg bg-gray-50">
+                                        <div>
+                                            <p class="font-bold text-gray-900">Citizen Auto-Registration</p>
+                                            <p class="text-sm text-gray-500">Allow users to sign up without admin
+                                                approval.</p>
+                                        </div>
+                                        <div
+                                            class="relative inline-block w-12 h-6 transition duration-200 ease-in-out bg-green-500 rounded-full cursor-pointer">
+                                            <span
+                                                class="absolute left-6 top-1 w-4 h-4 bg-white rounded-full transition-all"></span>
+                                        </div>
+                                    </div>
+                                    <div
+                                        class="flex items-center justify-between p-4 border border-gray-200 rounded-lg bg-gray-50">
+                                        <div>
+                                            <p class="font-bold text-gray-900">Officer Auto-Assignment (Beta)</p>
+                                            <p class="text-sm text-gray-500">AI automatically assigns complaints to
+                                                nearest officer.</p>
+                                        </div>
+                                        <div
+                                            class="relative inline-block w-12 h-6 transition duration-200 ease-in-out bg-gray-300 rounded-full cursor-pointer">
+                                            <span
+                                                class="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-all"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Security Tab -->
+                        <div id="security" class="tab-content space-y-6">
+                            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                                <h3 class="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                                    <i class="fas fa-shield-alt text-blue-500"></i> Security Policies
+                                </h3>
+                                <div class="grid gap-6">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Minimum Password
+                                            Length</label>
+                                        <select class="w-full md:w-1/2 border border-gray-300 rounded-lg p-2 bg-white">
+                                            <option>8 Characters</option>
+                                            <option>12 Characters</option>
+                                        </select>
+                                    </div>
+                                    <div class="mt-4 pt-4 border-t border-gray-100 space-y-4">
+                                        <button
+                                            class="w-full md:w-auto text-red-600 border border-red-200 hover:bg-red-50 py-2 px-4 rounded-lg">Reset
+                                            All User Passwords</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Notifications Tab -->
+                        <div id="notifications" class="tab-content">
+                            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                                <h3 class="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                                    <i class="fas fa-bell text-blue-500"></i> Email Notifications
+                                </h3>
+                                <div class="space-y-4">
+                                    <label
+                                        class="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors">
+                                        <input type="checkbox" checked
+                                            class="w-5 h-5 text-blue-600 rounded focus:ring-blue-500" />
+                                        <div>
+                                            <span class="block font-medium text-gray-900">New Complaint Alerts</span>
+                                            <span class="text-xs text-gray-500">Notify admins when a new complaint is
+                                                filed.</span>
+                                        </div>
+                                    </label>
+                                    <label
+                                        class="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors">
+                                        <input type="checkbox" checked
+                                            class="w-5 h-5 text-blue-600 rounded focus:ring-blue-500" />
+                                        <div>
+                                            <span class="block font-medium text-gray-900">Status Change Updates</span>
+                                            <span class="text-xs text-gray-500">Email citizens when their complaint
+                                                status changes.</span>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        function openTab(tabName) {
+            // Hide all contents
+            var contents = document.getElementsByClassName("tab-content");
+            for (var i = 0; i < contents.length; i++) {
+                contents[i].classList.remove("active");
+            }
+
+            // Remove active class from all buttons
+            var buttons = document.getElementsByClassName("tab-btn");
+            for (var i = 0; i < buttons.length; i++) {
+                buttons[i].classList.remove("active");
+                buttons[i].classList.add("text-gray-600");
+                buttons[i].classList.remove("text-blue-600", "bg-blue-50");
+            }
+
+            // Show specific tab content
+            document.getElementById(tabName).classList.add("active");
+
+            // Add active class to button (finding button by onclick is hard, so we just set styles based on event if we passed it, but here we can just do a simpler search or pass 'this')
+            // For simplicity, let's just loop and find the one with the matching onclick
+            // Actually, simpler: pass 'event' and use event.currentTarget
+
+            // Re-implementing simplified version:
+            const clickedBtn = Array.from(document.querySelectorAll('.tab-btn')).find(btn => btn.getAttribute('onclick').includes(tabName));
+            if (clickedBtn) {
+                clickedBtn.classList.add("active", "text-blue-600", "bg-blue-50");
+                clickedBtn.classList.remove("text-gray-600");
+            }
+        }
+    </script>
+</body>
+
+</html>

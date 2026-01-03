@@ -14,7 +14,7 @@ urlpatterns = [
     
     path("staff/dashboard/", StaffDashboardView.as_view(), name="staff_dashboard"),
 
-    path("admin/dashboard/", AdminDashboardView.as_view(), name="admin_dashboard"),
+    path("council/admin/dashboard/", AdminDashboardView.as_view(), name="admin_dashboard"),
     
     path("staff/logout/", staff_logout_view, name="staff_logout"),
 

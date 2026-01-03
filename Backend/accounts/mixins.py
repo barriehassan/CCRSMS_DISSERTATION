@@ -40,3 +40,11 @@ class RoleRequiredMixin:
             return redirect("staff_login")
 
         return super().dispatch(request, *args, **kwargs)
+
+
+class SessionUserMixin:
+    def dispatch(self, request, *args, **kwargs):
+        uid = request.session.get("staff_user_id")
+        if uid:
+            request.user = User.objects.filter(id=uid).first()  # attach
+        return super().dispatch(request, *args, **kwargs)

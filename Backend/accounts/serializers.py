@@ -78,6 +78,7 @@ class StaffAdminLoginSerializer(serializers.Serializer):
         return {
             "token": token,
             "token_key": token_obj.token_key,   # ✅ save the real token_key
+            "user_id": user,
             "user_type": user.user_type,
             "email": user.email,
             "first_name": user.first_name,

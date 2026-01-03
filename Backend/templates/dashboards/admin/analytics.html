@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics - Admin Portal</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3B82F6',
+                        secondary: '#F3F4F6',
+                        dark: '#1F2937',
+                        accent: '#F59E0B',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 font-sans">
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <aside
+            class="bg-gray-800 text-white shadow-xl h-screen flex flex-col sticky top-0 transition-all duration-300 w-64 flex-shrink-0">
+            <div class="p-6 border-b border-gray-700 flex items-center justify-between">
+                <h2 class="text-xl font-bold flex items-center gap-2 whitespace-nowrap overflow-hidden">
+                    <span class="bg-yellow-500 text-gray-900 p-1 rounded text-sm font-extrabold">AP</span>
+                    Admin Portal
+                </h2>
+            </div>
+
+            <nav class="flex-1 p-3 space-y-2 overflow-y-auto overflow-x-hidden">
+                <a href="dashboard.html"
+                    class="flex items-center gap-3 px-3 py-3 rounded-lg transition-colors font-medium whitespace-nowrap text-gray-400 hover:bg-gray-700 hover:text-white">
+                    <i class="fas fa-tachometer-alt text-xl flex-shrink-0"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="complaints.html"
+                    class="flex items-center gap-3 px-3 py-3 rounded-lg transition-colors font-medium whitespace-nowrap text-gray-400 hover:bg-gray-700 hover:text-white">
+                    <i class="fas fa-clipboard-list text-xl flex-shrink-0"></i>
+                    <span>Complaints</span>
+                </a>
+                <a href="#"
+                    class="flex items-center gap-3 px-3 py-3 rounded-lg transition-colors font-medium whitespace-nowrap text-gray-400 hover:bg-gray-700 hover:text-white">
+                    <i class="fas fa-file-contract text-xl flex-shrink-0"></i>
+                    <span>Permits</span>
+                </a>
+                <a href="assign-staff.html"
+                    class="flex items-center gap-3 px-3 py-3 rounded-lg transition-colors font-medium whitespace-nowrap text-gray-400 hover:bg-gray-700 hover:text-white">
+                    <i class="fas fa-user-shield text-xl flex-shrink-0"></i>
+                    <span>Assign Staff</span>
+                </a>
+                <a href="users.html"
+                    class="flex items-center gap-3 px-3 py-3 rounded-lg transition-colors font-medium whitespace-nowrap text-gray-400 hover:bg-gray-700 hover:text-white">
+                    <i class="fas fa-users text-xl flex-shrink-0"></i>
+                    <span>Users</span>
+                </a>
+                <a href="analytics.html"
+                    class="flex items-center gap-3 px-3 py-3 rounded-lg transition-colors font-medium whitespace-nowrap bg-blue-600 text-white shadow-md">
+                    <i class="fas fa-chart-bar text-xl flex-shrink-0"></i>
+                    <span>Analytics</span>
+                </a>
+                <a href="settings.html"
+                    class="flex items-center gap-3 px-3 py-3 rounded-lg transition-colors font-medium whitespace-nowrap text-gray-400 hover:bg-gray-700 hover:text-white">
+                    <i class="fas fa-cog text-xl flex-shrink-0"></i>
+                    <span>Settings</span>
+                </a>
+            </nav>
+
+            <div class="p-4 border-t border-gray-700">
+                <button
+                    class="flex items-center gap-3 px-3 py-3 w-full text-red-400 hover:bg-red-900/20 rounded-lg transition-colors font-medium whitespace-nowrap">
+                    <i class="fas fa-sign-out-alt text-xl flex-shrink-0"></i>
+                    <span>Logout</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-grow bg-gray-100 h-screen overflow-y-auto p-8">
+            <div class="max-w-7xl mx-auto">
+                <header class="mb-8 flex flex-col md:flex-row justify-between md:items-center gap-4">
+                    <div>
+                        <h1 class="text-3xl font-bold text-gray-900">Analytics Dashboard</h1>
+                        <p class="text-gray-500">Deep insights into system performance and trends.</p>
+                    </div>
+                    <div class="flex flex-wrap gap-4">
+                        <div class="relative">
+                            <i class="fas fa-calendar-alt absolute left-3 top-3 text-gray-400"></i>
+                            <select
+                                class="pl-10 pr-8 py-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm">
+                                <option>Last 30 Days</option>
+                                <option>Last Quarter</option>
+                                <option>This Year</option>
+                                <option>All Time</option>
+                            </select>
+                        </div>
+                        <div class="relative">
+                            <i class="fas fa-city absolute left-3 top-3 text-gray-400"></i>
+                            <select
+                                class="pl-10 pr-8 py-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm">
+                                <option>All Zones</option>
+                                <option>Central</option>
+                                <option>East End</option>
+                                <option>West End</option>
+                            </select>
+                        </div>
+                        <button
+                            class="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition-colors">
+                            <i class="fas fa-download"></i> Export PDF
+                        </button>
+                    </div>
+                </header>
+
+                <!-- Summaries -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div
+                        class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 text-center hover:shadow-lg transition-shadow border-t-4 border-blue-500">
+                        <p class="text-gray-500 text-sm font-medium uppercase tracking-wider">Total Revenue</p>
+                        <h3 class="text-3xl font-bold text-gray-900 mt-2">Le 50M</h3>
+                        <span
+                            class="text-green-600 bg-green-50 px-2 py-0.5 rounded-full text-xs font-bold mt-2 inline-block">+12%
+                            vs last month</span>
+                    </div>
+                    <div
+                        class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 text-center hover:shadow-lg transition-shadow border-t-4 border-yellow-500">
+                        <p class="text-gray-500 text-sm font-medium uppercase tracking-wider">Top Issue</p>
+                        <h3 class="text-2xl font-bold text-gray-900 mt-2">Potholes</h3>
+                        <span
+                            class="text-yellow-600 bg-yellow-50 px-2 py-0.5 rounded-full text-xs font-bold mt-2 inline-block">35%
+                            of all reports</span>
+                    </div>
+                    <div
+                        class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 text-center hover:shadow-lg transition-shadow border-t-4 border-purple-500">
+                        <p class="text-gray-500 text-sm font-medium uppercase tracking-wider">Peak Day</p>
+                        <h3 class="text-3xl font-bold text-gray-900 mt-2">Monday</h3>
+                        <span
+                            class="text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full text-xs font-bold mt-2 inline-block">150
+                            avg reports</span>
+                    </div>
+                    <div
+                        class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 text-center hover:shadow-lg transition-shadow border-t-4 border-green-500">
+                        <p class="text-gray-500 text-sm font-medium uppercase tracking-wider">Resolution Time</p>
+                        <h3 class="text-3xl font-bold text-gray-900 mt-2">24 Hrs</h3>
+                        <span
+                            class="text-green-600 bg-green-50 px-2 py-0.5 rounded-full text-xs font-bold mt-2 inline-block">-2hrs
+                            vs last month</span>
+                    </div>
+                </div>
+
+                <!-- Main Charts Row 1 -->
+                <div class="grid lg:grid-cols-3 gap-8 mb-8">
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 lg:col-span-2">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+                                <i class="fas fa-chart-line text-blue-500"></i> Complaint Volume Trends
+                            </h3>
+                        </div>
+                        <div class="h-80">
+                            <canvas id="lineChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                        <h3 class="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
+                            <i class="fas fa-chart-pie text-blue-500"></i> Issue Distribution
+                        </h3>
+                        <div class="h-64 flex justify-center">
+                            <canvas id="doughnutChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main Charts Row 2 -->
+                <div class="grid lg:grid-cols-2 gap-8 pb-8">
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                        <h3 class="text-lg font-bold text-gray-900 mb-6">Zone Performance Metrics</h3>
+                        <div class="h-72">
+                            <canvas id="barChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                        <h3 class="text-lg font-bold text-gray-900 mb-6">Top Performing Officers</h3>
+                        <div class="space-y-4 overflow-y-auto h-72 pr-2">
+                            <!-- Officer List Generated by JS for simplicity mimic -->
+                            <div
+                                class="flex items-center justify-between p-3 bg-gray-50 hover:bg-white hover:shadow-md border border-transparent hover:border-gray-100 rounded-xl transition-all">
+                                <div class="flex items-center gap-3">
+                                    <div
+                                        class="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-700 text-white rounded-full flex items-center justify-center font-bold text-sm shadow-sm">
+                                        JD</div>
+                                    <div>
+                                        <p class="text-sm font-bold text-gray-900">John Doe</p>
+                                        <p class="text-xs text-gray-500">Zone: Central</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <span class="block text-sm font-bold text-green-600">98%</span>
+                                    <span class="text-xs text-gray-400">Resolution Rate</span>
+                                </div>
+                            </div>
+                            <div
+                                class="flex items-center justify-between p-3 bg-gray-50 hover:bg-white hover:shadow-md border border-transparent hover:border-gray-100 rounded-xl transition-all">
+                                <div class="flex items-center gap-3">
+                                    <div
+                                        class="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-700 text-white rounded-full flex items-center justify-center font-bold text-sm shadow-sm">
+                                        JS</div>
+                                    <div>
+                                        <p class="text-sm font-bold text-gray-900">Jane Smith</p>
+                                        <p class="text-xs text-gray-500">Zone: West End</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <span class="block text-sm font-bold text-green-600">96%</span>
+                                    <span class="text-xs text-gray-400">Resolution Rate</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Chart.js Configuration
+        // Line Chart
+        const lineCtx = document.getElementById('lineChart').getContext('2d');
+        new Chart(lineCtx, {
+            type: 'line',
+            data: {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                datasets: [
+                    {
+                        label: 'Complaints Received',
+                        data: [65, 59, 80, 81, 56, 55, 40, 75, 92, 110, 85, 90],
+                        borderColor: '#0958d9',
+                        backgroundColor: 'rgba(9, 88, 217, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Resolved',
+                        data: [45, 50, 60, 70, 50, 52, 38, 70, 85, 100, 80, 88],
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom' } },
+                scales: { y: { beginAtZero: true, grid: { color: '#f3f4f6' } }, x: { grid: { display: false } } }
+            }
+        });
+
+        // Doughnut Chart
+        const doughnutCtx = document.getElementById('doughnutChart').getContext('2d');
+        new Chart(doughnutCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Roads', 'Waste', 'Lighting', 'Water', 'Permits', 'Others'],
+                datasets: [{
+                    data: [30, 25, 15, 10, 15, 5],
+                    backgroundColor: ['#0958d9', '#10b981', '#f59e0b', '#3b82f6', '#8b5cf6', '#9ca3af'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom' } }
+            }
+        });
+
+        // Bar Chart
+        const barCtx = document.getElementById('barChart').getContext('2d');
+        new Chart(barCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Central', 'East End', 'West End', 'Aberdeen', 'Lumley'],
+                datasets: [
+                    {
+                        label: 'Avg Resolution Time (Days)',
+                        data: [2.5, 3.2, 1.8, 2.1, 2.8],
+                        backgroundColor: '#f59e0b',
+                        borderRadius: 4,
+                    },
+                    {
+                        label: 'Satisfaction Score (1-5)',
+                        data: [4.2, 3.8, 4.5, 4.3, 4.0],
+                        backgroundColor: '#0958d9',
+                        borderRadius: 4,
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom' } },
+                scales: { y: { beginAtZero: true, grid: { color: '#f3f4f6' } }, x: { grid: { display: false } } }
+            }
+        });
+    </script>
+</body>
+
+</html>

@@ -103,6 +103,7 @@ def staff_admin_login_view(request):
             request.session["staff_token"] = str(data["token"])
             request.session["staff_token_key"] = str(data["token_key"])  # ✅ new
             request.session["user_type"] = data["user_type"]
+            request.session["staff_user_id"] = data["user_id"]
             request.session.modified = True
 
             print("LOGIN OK:", data["email"], data["user_type"], "token_key:", data["token_key"])
