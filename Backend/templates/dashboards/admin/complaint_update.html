@@ -1,0 +1,99 @@
+{% extends "dashboards/admin/admin-dashboard.html" %}
+
+{% block title %}Update Complaint - Admin{% endblock %}
+
+{% block extra_head %}
+<style>
+    .form-input {
+        width: 100%;
+        padding: 0.5rem 1rem;
+        /* py-2 px-4 */
+        border: 1px solid #d1d5db;
+        /* border-gray-300 */
+        border-radius: 0.5rem;
+        /* rounded-lg */
+        outline: none;
+        transition: box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+
+    .form-input:focus {
+        border-color: #3b82f6;
+        /* blue-500 */
+        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+        /* focus:ring-2 */
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<header class="mb-8 flex items-center justify-between">
+    <div>
+        <h1 class="text-3xl font-bold text-gray-900">Update Complaint</h1>
+        <p class="text-gray-500">Admin can edit all key fields.</p>
+    </div>
+
+    <a href="{% url 'admin_complaint_detail' complaint.pk %}"
+        class="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition-colors">
+        <i class="fas fa-arrow-left"></i> Back
+    </a>
+</header>
+
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 max-w-3xl">
+    <form method="post" class="space-y-4">
+        {% csrf_token %}
+
+        <div class="grid md:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                {{ form.status }}
+                {% if form.status.errors %}
+                <p class="text-sm text-red-600 mt-1">{{ form.status.errors|striptags }}</p>
+                {% endif %}
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+                {{ form.priority_level }}
+                {% if form.priority_level.errors %}
+                <p class="text-sm text-red-600 mt-1">{{ form.priority_level.errors|striptags }}</p>
+                {% endif %}
+            </div>
+
+            <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                {{ form.category }}
+                {% if form.category.errors %}
+                <p class="text-sm text-red-600 mt-1">{{ form.category.errors|striptags }}</p>
+                {% endif %}
+            </div>
+
+            <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                {{ form.title }}
+                {% if form.title.errors %}
+                <p class="text-sm text-red-600 mt-1">{{ form.title.errors|striptags }}</p>
+                {% endif %}
+            </div>
+
+            <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                {{ form.description }}
+                {% if form.description.errors %}
+                <p class="text-sm text-red-600 mt-1">{{ form.description.errors|striptags }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="pt-4 flex gap-3">
+            <button type="submit"
+                class="bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-lg font-medium transition-colors">
+                Save Changes
+            </button>
+            <a href="{% url 'admin_complaint_detail' complaint.pk %}"
+                class="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-lg font-medium transition-colors">
+                Cancel
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}

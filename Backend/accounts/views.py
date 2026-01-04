@@ -9,7 +9,10 @@ from .mixins import KnoxSessionRequiredMixin, RoleRequiredMixin
 from .notifications import send_welcome_email, send_welcome_sms
 from django.contrib.auth import get_user_model, authenticate
 from .forms import StaffAdminLoginForm
-from .models import Ward
+from core.models import Complaint, ComplaintCategory
+from .models import Ward, Department
+from core.views import SessionStaffUserMixin
+
 
 
 User = get_user_model()
@@ -127,15 +130,48 @@ def staff_logout_view(request):
     return redirect("staff_login")
 
 
-class StaffDashboardView(KnoxSessionRequiredMixin, RoleRequiredMixin, TemplateView):
+class StaffDashboardView(
+    SessionStaffUserMixin, KnoxSessionRequiredMixin, RoleRequiredMixin, TemplateView):
     template_name = "dashboards/staff/staff-dashboard.html"
     required_role = "STAFF"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+
+        qs = Complaint.objects.filter(citizen__ward=self.request.user.ward)
+
+        ctx["categories"] = ComplaintCategory.objects.all().order_by("category_name")
+        ctx["recent_complaints"] = qs.select_related("category", "citizen").order_by("-created_at")[:5]
+
+        ctx["staff_stats"] = {
+            "total": qs.count(),
+            "submitted": qs.filter(status="SUBMITTED").count(),
+            "in_progress": qs.filter(status="IN_PROGRESS").count(),
+            "resolved": qs.filter(status="RESOLVED").count(),
+        }
+        return ctx
 
 
 class AdminDashboardView(KnoxSessionRequiredMixin, RoleRequiredMixin, TemplateView):
     template_name = "dashboards/admin/admin-dashboard.html"
     required_role = "ADMIN"
 
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+
+        qs = Complaint.objects.all()
+
+        ctx["categories"] = ComplaintCategory.objects.all().order_by("category_name")
+        ctx["wards"] = Ward.objects.all().order_by("name")
+        ctx["departments"] = Department.objects.all().order_by("name")
+
+        ctx["admin_stats"] = {
+            "total": qs.count(),
+            "submitted": qs.filter(status="SUBMITTED").count(),
+            "in_progress": qs.filter(status="IN_PROGRESS").count(),
+            "resolved": qs.filter(status="RESOLVED").count(),
+        }
+        return ctx
 
 class WardViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Ward.objects.all().order_by("name")

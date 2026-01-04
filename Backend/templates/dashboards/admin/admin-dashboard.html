@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard - CCRSMS</title>
+    <title>{% block title %}Admin Portal - CCRSMS{% endblock %}</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome -->
@@ -12,6 +12,20 @@
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+
+    <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
+
+    <!-- Charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    
+    
     <script>
         tailwind.config = {
             theme: {
@@ -33,7 +47,12 @@
         body {
             font-family: 'Inter', sans-serif;
         }
+        #complaintsMap { 
+            height: 420px; 
+            border-radius: 14px; 
+        }
     </style>
+    {% block extra_head %}{% endblock %}
 </head>
 
 <body class="bg-gray-100">
@@ -50,12 +69,12 @@
             </div>
 
             <nav class="flex-1 p-3 space-y-2 overflow-y-auto overflow-x-hidden">
-                <a href="dashboard.html"
+                <a href="{% url 'admin_dashboard' %}"
                     class="flex items-center gap-3 px-3 py-3 rounded-lg transition-colors font-medium whitespace-nowrap bg-blue-600 text-white shadow-md">
                     <i class="fas fa-tachometer-alt text-xl flex-shrink-0"></i>
                     <span>Dashboard</span>
                 </a>
-                <a href="#"
+                <a href="{% url 'admin_complaint_list' %}"
                     class="flex items-center gap-3 px-3 py-3 rounded-lg transition-colors font-medium whitespace-nowrap text-gray-400 hover:bg-gray-700 hover:text-white">
                     <i class="fas fa-clipboard-list text-xl flex-shrink-0"></i>
                     <span>Complaints</span>
@@ -101,253 +120,361 @@
 
         <!-- Main Content -->
         <main class="flex-grow bg-gray-100 min-h-screen p-8 overflow-y-auto h-screen">
-            <div class="max-w-7xl mx-auto">
+            {% block content %}
+                <div class="max-w-7xl mx-auto">
                 <header class="mb-8 flex flex-col md:flex-row justify-between md:items-center gap-4">
                     <div>
-                        <h1 class="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-                        <p class="text-gray-500">Overview of system performance and recent activities.</p>
-                    </div>
-                    <div class="flex gap-3">
-                        <button
-                            class="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition-colors">
-                            <i class="fas fa-file-export"></i> Export Data
-                        </button>
-                        <button
-                            class="bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition-colors shadow-sm">
-                            <i class="fas fa-plus"></i> New Announcement
-                        </button>
+                    <h1 class="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+                    <p class="text-gray-500">System-level overview, analytics, and map intelligence.</p>
                     </div>
                 </header>
 
-                <!-- Stats Grid -->
+                <!-- KPIs -->
                 <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                    <!-- Stat 1 -->
                     <div class="bg-white rounded-xl shadow-sm border border-gray-100 flex items-center p-6">
-                        <div
-                            class="w-14 h-14 rounded-full flex items-center justify-center text-2xl mr-4 flex-shrink-0 bg-blue-100 text-blue-600">
-                            <i class="fas fa-clipboard-list"></i>
-                        </div>
-                        <div class="flex-1">
-                            <p class="text-gray-500 text-sm font-medium">Total Complaints</p>
-                            <h3 class="text-2xl font-bold text-gray-900">1,256</h3>
-                            <div class="flex items-center text-xs font-bold mt-1 text-green-600">
-                                <i class="fas fa-arrow-up mr-1"></i>
-                                +12.5%
-                                <span class="text-gray-400 font-normal ml-1">vs last month</span>
-                            </div>
-                        </div>
+                    <div class="w-14 h-14 rounded-full flex items-center justify-center text-2xl mr-4 bg-blue-100 text-blue-600">
+                        <i class="fas fa-clipboard-list"></i>
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-gray-500 text-sm font-medium">Total Complaints</p>
+                        <h3 class="text-2xl font-bold text-gray-900">{{ admin_stats.total|default:0 }}</h3>
+                    </div>
                     </div>
 
-                    <!-- Stat 2 -->
                     <div class="bg-white rounded-xl shadow-sm border border-gray-100 flex items-center p-6">
-                        <div
-                            class="w-14 h-14 rounded-full flex items-center justify-center text-2xl mr-4 flex-shrink-0 bg-yellow-100 text-yellow-600">
-                            <i class="fas fa-exclamation-circle"></i>
-                        </div>
-                        <div class="flex-1">
-                            <p class="text-gray-500 text-sm font-medium">Pending Issues</p>
-                            <h3 class="text-2xl font-bold text-gray-900">42</h3>
-                            <div class="flex items-center text-xs font-bold mt-1 text-green-600">
-                                <i class="fas fa-arrow-up mr-1"></i>
-                                -5.2%
-                                <span class="text-gray-400 font-normal ml-1">vs last month</span>
-                            </div>
-                        </div>
+                    <div class="w-14 h-14 rounded-full flex items-center justify-center text-2xl mr-4 bg-yellow-100 text-yellow-600">
+                        <i class="fas fa-hourglass-half"></i>
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-gray-500 text-sm font-medium">Submitted</p>
+                        <h3 class="text-2xl font-bold text-gray-900">{{ admin_stats.submitted|default:0 }}</h3>
+                    </div>
                     </div>
 
-                    <!-- Stat 3 -->
                     <div class="bg-white rounded-xl shadow-sm border border-gray-100 flex items-center p-6">
-                        <div
-                            class="w-14 h-14 rounded-full flex items-center justify-center text-2xl mr-4 flex-shrink-0 bg-green-100 text-green-600">
-                            <i class="fas fa-check-circle"></i>
-                        </div>
-                        <div class="flex-1">
-                            <p class="text-gray-500 text-sm font-medium">Resolved (This Month)</p>
-                            <h3 class="text-2xl font-bold text-gray-900">318</h3>
-                            <div class="flex items-center text-xs font-bold mt-1 text-green-600">
-                                <i class="fas fa-arrow-up mr-1"></i>
-                                +8.1%
-                                <span class="text-gray-400 font-normal ml-1">vs last month</span>
-                            </div>
-                        </div>
+                    <div class="w-14 h-14 rounded-full flex items-center justify-center text-2xl mr-4 bg-purple-100 text-purple-600">
+                        <i class="fas fa-spinner"></i>
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-gray-500 text-sm font-medium">In Progress</p>
+                        <h3 class="text-2xl font-bold text-gray-900">{{ admin_stats.in_progress|default:0 }}</h3>
+                    </div>
                     </div>
 
-                    <!-- Stat 4 -->
                     <div class="bg-white rounded-xl shadow-sm border border-gray-100 flex items-center p-6">
-                        <div
-                            class="w-14 h-14 rounded-full flex items-center justify-center text-2xl mr-4 flex-shrink-0 bg-purple-100 text-purple-600">
-                            <i class="fas fa-users"></i>
-                        </div>
-                        <div class="flex-1">
-                            <p class="text-gray-500 text-sm font-medium">Active Citizens</p>
-                            <h3 class="text-2xl font-bold text-gray-900">12,504</h3>
-                            <div class="flex items-center text-xs font-bold mt-1 text-green-600">
-                                <i class="fas fa-arrow-up mr-1"></i>
-                                +22.4%
-                                <span class="text-gray-400 font-normal ml-1">vs last month</span>
-                            </div>
-                        </div>
+                    <div class="w-14 h-14 rounded-full flex items-center justify-center text-2xl mr-4 bg-green-100 text-green-600">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-gray-500 text-sm font-medium">Resolved</p>
+                        <h3 class="text-2xl font-bold text-gray-900">{{ admin_stats.resolved|default:0 }}</h3>
+                    </div>
                     </div>
                 </div>
 
-                <div class="grid lg:grid-cols-3 gap-8">
-                    <!-- Recent Activity Feed -->
-                    <div class="lg:col-span-2">
-                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 h-full">
-                            <div class="flex justify-between items-center mb-6">
-                                <h3 class="text-xl font-bold text-gray-900">Recent Activity</h3>
-                                <button class="text-blue-600 hover:underline text-sm font-medium">View All
-                                    History</button>
-                            </div>
-                            <div class="space-y-6">
-                                <!-- Activity Item -->
-                                <div class="flex gap-4 pb-6 border-b border-gray-100 last:border-0 last:pb-0">
-                                    <div class="flex flex-col items-center">
-                                        <div class="w-2 h-2 rounded-full mb-1 flex-shrink-0 bg-blue-500"></div>
-                                        <div class="w-0.5 h-full bg-gray-100"></div>
-                                    </div>
-                                    <div>
-                                        <p class="text-sm text-gray-800">
-                                            <span class="font-bold">Mariama Sesay</span> submitted a new complaint <span
-                                                class="font-medium text-gray-600"> Broken Streetlight</span>
-                                        </p>
-                                        <p class="text-xs text-gray-400 mt-1">10 mins ago</p>
-                                    </div>
-                                </div>
-                                <!-- Activity Item -->
-                                <div class="flex gap-4 pb-6 border-b border-gray-100 last:border-0 last:pb-0">
-                                    <div class="flex flex-col items-center">
-                                        <div class="w-2 h-2 rounded-full mb-1 flex-shrink-0 bg-green-500"></div>
-                                        <div class="w-0.5 h-full bg-gray-100"></div>
-                                    </div>
-                                    <div>
-                                        <p class="text-sm text-gray-800">
-                                            <span class="font-bold">Officer John Doe</span> marked as resolved <span
-                                                class="font-medium text-gray-600"> Pothole on Main St</span>
-                                        </p>
-                                        <p class="text-xs text-gray-400 mt-1">1 hour ago</p>
-                                    </div>
-                                </div>
-                                <!-- Activity Item -->
-                                <div class="flex gap-4 pb-6 border-b border-gray-100 last:border-0 last:pb-0">
-                                    <div class="flex flex-col items-center">
-                                        <div class="w-2 h-2 rounded-full mb-1 flex-shrink-0 bg-gray-400"></div>
-                                        <div class="w-0.5 h-full bg-gray-100"></div>
-                                    </div>
-                                    <div>
-                                        <p class="text-sm text-gray-800">
-                                            <span class="font-bold">System</span> generated monthly report <span
-                                                class="font-medium text-gray-600"> February 2024</span>
-                                        </p>
-                                        <p class="text-xs text-gray-400 mt-1">2 hours ago</p>
-                                    </div>
-                                </div>
-                                <!-- Activity Item -->
-                                <div class="flex gap-4 pb-6 border-b border-gray-100 last:border-0 last:pb-0">
-                                    <div class="flex flex-col items-center">
-                                        <div class="w-2 h-2 rounded-full mb-1 flex-shrink-0 bg-purple-500"></div>
-                                        <div class="w-0.5 h-full bg-gray-100"></div>
-                                    </div>
-                                    <div>
-                                        <p class="text-sm text-gray-800">
-                                            <span class="font-bold">Sarah Smith</span> registered new account <span
-                                                class="font-medium text-gray-600"> </span>
-                                        </p>
-                                        <p class="text-xs text-gray-400 mt-1">3 hours ago</p>
-                                    </div>
-                                </div>
-                                <!-- Activity Item -->
-                                <div class="flex gap-4 pb-6 border-b border-gray-100 last:border-0 last:pb-0">
-                                    <div class="flex flex-col items-center">
-                                        <div class="w-2 h-2 rounded-full mb-1 flex-shrink-0 bg-red-500"></div>
-                                        <div class="w-0.5 h-full bg-gray-100"></div>
-                                    </div>
-                                    <div>
-                                        <p class="text-sm text-gray-800">
-                                            <span class="font-bold">Admin User</span> updated system settings <span
-                                                class="font-medium text-gray-600"> Security Policy</span>
-                                        </p>
-                                        <p class="text-xs text-gray-400 mt-1">5 hours ago</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                <!-- Map + Filters -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
+                    <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-900">Complaints Intelligence Map</h3>
+                        <p class="text-sm text-gray-500">Cluster, heatmap, and filters across wards/departments.</p>
                     </div>
 
-                    <!-- Right Column: System Health & Quick Actions -->
-                    <div class="space-y-8">
-                        <!-- System Health -->
-                        <div class="bg-gray-900 text-white rounded-xl shadow-sm border border-gray-800 p-6">
-                            <div class="flex items-center justify-between mb-6">
-                                <h3 class="text-lg font-bold flex items-center gap-2">
-                                    <i class="fas fa-bolt text-yellow-400"></i> System Health
-                                </h3>
-                                <span
-                                    class="bg-green-500/20 text-green-400 text-xs px-2 py-1 rounded-full border border-green-500/30 flex items-center gap-1">
-                                    <div class="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></div> All Systems
-                                    Operational
-                                </span>
-                            </div>
-                            <div class="space-y-4">
-                                <div>
-                                    <div class="flex justify-between text-sm mb-1 text-gray-300">
-                                        <span class="flex items-center gap-2"><i class="fas fa-server"></i> Server
-                                            Load</span>
-                                        <span>24%</span>
-                                    </div>
-                                    <div class="w-full bg-gray-700 rounded-full h-2">
-                                        <div class="bg-blue-500 h-2 rounded-full" style="width: 24%"></div>
-                                    </div>
-                                </div>
-                                <div>
-                                    <div class="flex justify-between text-sm mb-1 text-gray-300">
-                                        <span class="flex items-center gap-2"><i class="fas fa-database"></i> Database
-                                            Usage</span>
-                                        <span>68%</span>
-                                    </div>
-                                    <div class="w-full bg-gray-700 rounded-full h-2">
-                                        <div class="bg-green-500 h-2 rounded-full" style="width: 68%"></div>
-                                    </div>
-                                </div>
-                                <div
-                                    class="pt-4 mt-4 border-t border-gray-700 text-xs text-gray-400 flex justify-between">
-                                    <span>Version 2.4.0</span>
-                                    <span>Last Backup: 1 hour ago</span>
-                                </div>
-                            </div>
-                        </div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <label class="text-sm text-gray-600">View</label>
+                        <select id="mapViewMode" class="border border-gray-300 px-3 py-2 rounded-lg text-sm bg-white">
+                        <option value="cluster" selected>Cluster</option>
+                        <option value="heat">Heatmap</option>
+                        </select>
 
-                        <!-- Quick Actions Grid -->
-                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                            <h3 class="text-lg font-bold text-gray-900 mb-4">Quick Management</h3>
-                            <div class="grid grid-cols-2 gap-4">
-                                <button
-                                    class="p-4 bg-blue-50 hover:bg-blue-100 rounded-xl flex flex-col items-center justify-center text-blue-700 transition-colors gap-2">
-                                    <i class="fas fa-user-plus text-xl"></i>
-                                    <span class="text-xs font-bold">Add Staff</span>
-                                </button>
-                                <button
-                                    class="p-4 bg-purple-50 hover:bg-purple-100 rounded-xl flex flex-col items-center justify-center text-purple-700 transition-colors gap-2">
-                                    <i class="fas fa-users text-xl"></i>
-                                    <span class="text-xs font-bold">Manage Roles</span>
-                                </button>
-                                <button
-                                    class="p-4 bg-orange-50 hover:bg-orange-100 rounded-xl flex flex-col items-center justify-center text-orange-700 transition-colors gap-2">
-                                    <i class="fas fa-exclamation-circle text-xl"></i>
-                                    <span class="text-xs font-bold">Review Flags</span>
-                                </button>
-                                <button
-                                    class="p-4 bg-green-50 hover:bg-green-100 rounded-xl flex flex-col items-center justify-center text-green-700 transition-colors gap-2">
-                                    <i class="fas fa-file-export text-xl"></i>
-                                    <span class="text-xs font-bold">Audit Logs</span>
-                                </button>
-                            </div>
-                        </div>
+                        <label class="text-sm text-gray-600 ml-2">Color by</label>
+                        <select id="colorMode" class="border border-gray-300 px-3 py-2 rounded-lg text-sm bg-white">
+                        <option value="status" selected>Status</option>
+                        <option value="priority">Priority</option>
+                        </select>
+                    </div>
+                    </div>
+
+                    <!-- Filters -->
+                    <div class="grid grid-cols-1 md:grid-cols-6 gap-3 mb-4">
+                    <input type="date" id="dateFrom" class="border border-gray-300 px-3 py-2 rounded-lg text-sm bg-white" />
+                    <input type="date" id="dateTo" class="border border-gray-300 px-3 py-2 rounded-lg text-sm bg-white" />
+
+                    <select id="categoryFilter" class="border border-gray-300 px-3 py-2 rounded-lg text-sm bg-white">
+                        <option value="">All Categories</option>
+                        {% for cat in categories %}
+                        <option value="{{ cat.id }}">{{ cat.category_name }}</option>
+                        {% endfor %}
+                    </select>
+
+                    <select id="statusFilter" class="border border-gray-300 px-3 py-2 rounded-lg text-sm bg-white">
+                        <option value="">All Status</option>
+                        <option value="SUBMITTED">Submitted</option>
+                        <option value="ACKNOWLEDGED">Acknowledged</option>
+                        <option value="IN_PROGRESS">In Progress</option>
+                        <option value="RESOLVED">Resolved</option>
+                        <option value="REJECTED">Rejected</option>
+                    </select>
+
+                    <select id="wardFilter" class="border border-gray-300 px-3 py-2 rounded-lg text-sm bg-white">
+                        <option value="">All Wards</option>
+                        {% for w in wards %}
+                        <option value="{{ w.id }}">{{ w.name }}</option>
+                        {% endfor %}
+                    </select>
+
+                    <select id="departmentFilter" class="border border-gray-300 px-3 py-2 rounded-lg text-sm bg-white">
+                        <option value="">All Departments</option>
+                        {% for d in departments %}
+                        <option value="{{ d.id }}">{{ d.name }}</option>
+                        {% endfor %}
+                    </select>
+                    </div>
+
+                    <div id="complaintsMap"></div>
+                </div>
+
+                <!-- Charts -->
+                <div class="grid lg:grid-cols-2 gap-6 mb-8">
+                    <div class="bg-white rounded-xl p-6 border border-gray-100">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="font-bold text-gray-900">Complaints per Ward</h3>
+                        <span class="text-xs text-gray-500">Top wards by volume</span>
+                    </div>
+                    <canvas id="wardChart"></canvas>
+                    </div>
+
+                    <div class="bg-white rounded-xl p-6 border border-gray-100">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="font-bold text-gray-900">Complaints per Category</h3>
+                        <span class="text-xs text-gray-500">Distribution</span>
+                    </div>
+                    <canvas id="categoryChart"></canvas>
+                    </div>
+
+                    <div class="bg-white rounded-xl p-6 border border-gray-100 lg:col-span-2">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="font-bold text-gray-900">Complaints per Day</h3>
+                        <span class="text-xs text-gray-500">Trend line</span>
+                    </div>
+                    <canvas id="dayChart"></canvas>
                     </div>
                 </div>
-            </div>
+
+                {% if messages %}
+                <div class="mb-6 space-y-2">
+                    {% for message in messages %}
+                    <div class="p-3 rounded-lg border
+                        {% if message.tags == 'success' %} bg-green-50 border-green-200 text-green-700
+                        {% elif message.tags == 'error' %} bg-red-50 border-red-200 text-red-700
+                        {% else %} bg-gray-50 border-gray-200 text-gray-700 {% endif %}">
+                        {{ message }}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                </div>
+                {% endblock %}
         </main>
     </div>
+    <script>
+        const DETAIL_BASE_URL = "/core/admin/complaints/";
+        const GEOJSON_URL = "{% url 'admin_complaints_geojson' %}";
+
+        const STATUS_COLORS = {
+            "SUBMITTED": "#F59E0B",
+            "ACKNOWLEDGED": "#3B82F6",
+            "IN_PROGRESS": "#8B5CF6",
+            "RESOLVED": "#22C55E",
+            "REJECTED": "#EF4444",
+        };
+        const PRIORITY_COLORS = { "LOW": "#22C55E", "MEDIUM": "#F59E0B", "HIGH": "#EF4444" };
+        const PRIORITY_INTENSITY = { "LOW": 0.3, "MEDIUM": 0.6, "HIGH": 1.0 };
+
+        let map, clusterLayer, heatLayer;
+        let currentColorMode = "status";
+        let currentViewMode = "cluster";
+
+        function getColor(p) {
+            if (currentColorMode === "priority") return PRIORITY_COLORS[p.priority_level] || "#6B7280";
+            return STATUS_COLORS[p.status] || "#6B7280";
+        }
+
+        function buildQuery() {
+            const params = new URLSearchParams();
+            const dateFrom = document.getElementById("dateFrom")?.value;
+            const dateTo = document.getElementById("dateTo")?.value;
+            const category = document.getElementById("categoryFilter")?.value;
+            const status = document.getElementById("statusFilter")?.value;
+            const ward = document.getElementById("wardFilter")?.value;
+            const dept = document.getElementById("departmentFilter")?.value;
+
+            if (dateFrom) params.set("date_from", dateFrom);
+            if (dateTo) params.set("date_to", dateTo);
+            if (category) params.set("category", category);
+            if (status) params.set("status", status);
+            if (ward) params.set("ward", ward);
+            if (dept) params.set("department", dept);
+
+            return params.toString() ? `?${params.toString()}` : "";
+        }
+
+        async function loadGeoJSON() {
+            const res = await fetch(`${GEOJSON_URL}${buildQuery()}`, { credentials: "same-origin" });
+            if (!res.ok) throw new Error("Failed to load GeoJSON");
+            return await res.json();
+        }
+
+        function clearLayers() {
+            if (clusterLayer) clusterLayer.remove();
+            if (heatLayer) heatLayer.remove();
+            clusterLayer = null;
+            heatLayer = null;
+        }
+
+        function renderCluster(data) {
+            clusterLayer = L.markerClusterGroup();
+
+            const geo = L.geoJSON(data, {
+            pointToLayer: (feature, latlng) => {
+                const p = feature.properties || {};
+                const color = getColor(p);
+
+                const marker = L.circleMarker(latlng, {
+                radius: 7,
+                color: color,
+                fillColor: color,
+                fillOpacity: 0.85,
+                weight: 2,
+                });
+
+                const url = `${DETAIL_BASE_URL}${p.complaint_id}/`;
+                marker.bindPopup(`
+                <div style="min-width:240px">
+                    <div style="font-weight:800;margin-bottom:4px">${p.title || "Complaint"}</div>
+                    <div style="font-size:12px;color:#6B7280">
+                    <div><b>ID:</b> #${p.complaint_id || ""}</div>
+                    <div><b>Status:</b> ${p.status || ""}</div>
+                    <div><b>Priority:</b> ${p.priority_level || ""}</div>
+                    <div><b>Category:</b> ${p.category || ""}</div>
+                    <div><b>Citizen:</b> ${p.citizen_name || ""}</div>
+                    <div style="margin-top:10px">
+                        <a href="${url}" style="color:#2563EB;text-decoration:underline;font-weight:600">Open complaint detail</a>
+                    </div>
+                    </div>
+                </div>
+                `);
+
+                return marker;
+            }
+            });
+
+            geo.eachLayer(l => clusterLayer.addLayer(l));
+            clusterLayer.addTo(map);
+
+            const bounds = geo.getBounds();
+            if (bounds.isValid()) map.fitBounds(bounds.pad(0.2));
+        }
+
+        function renderHeat(data) {
+            const heatPoints = [];
+            (data.features || []).forEach(f => {
+            const coords = f.geometry?.coordinates;
+            if (!coords) return;
+            const lng = coords[0];
+            const lat = coords[1];
+            const p = f.properties || {};
+            const intensity = PRIORITY_INTENSITY[p.priority_level] || 0.4;
+            heatPoints.push([lat, lng, intensity]);
+            });
+
+            heatLayer = L.heatLayer(heatPoints, { radius: 25, blur: 18, maxZoom: 17 }).addTo(map);
+
+            const latlngs = heatPoints.map(h => L.latLng(h[0], h[1]));
+            if (latlngs.length) map.fitBounds(L.latLngBounds(latlngs).pad(0.2));
+        }
+
+        async function refreshMap() {
+            const data = await loadGeoJSON();
+            clearLayers();
+            if (currentViewMode === "heat") renderHeat(data);
+            else renderCluster(data);
+        }
+
+        async function initMap() {
+            map = L.map("complaintsMap").setView([8.46, -11.78], 12);
+            L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            maxZoom: 19, attribution: "&copy; OpenStreetMap contributors"
+            }).addTo(map);
+
+            await refreshMap();
+
+            document.getElementById("colorMode").addEventListener("change", async (e) => {
+            currentColorMode = e.target.value;
+            await refreshMap();
+            });
+
+            document.getElementById("mapViewMode").addEventListener("change", async (e) => {
+            currentViewMode = e.target.value;
+            await refreshMap();
+            });
+
+            ["dateFrom","dateTo","categoryFilter","statusFilter","wardFilter","departmentFilter"].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener("change", refreshMap);
+            });
+        }
+
+        // Charts
+        async function fetchJSON(url) {
+            const res = await fetch(url, { credentials: "same-origin" });
+            if (!res.ok) throw new Error("Failed: " + url);
+            return await res.json();
+        }
+
+        async function initCharts() {
+            const wardData = await fetchJSON("{% url 'admin_agg_ward_counts' %}");
+            const catData  = await fetchJSON("{% url 'admin_agg_category_counts' %}");
+            const dayData  = await fetchJSON("{% url 'admin_agg_daily_counts' %}");
+
+            new Chart(document.getElementById("wardChart"), {
+            type: "bar",
+            data: {
+                labels: wardData.map(x => x.citizen__ward__name || "Unknown"),
+                datasets: [{ label: "Complaints", data: wardData.map(x => x.total), backgroundColor: "#3B82F6" }]
+            },
+            options: { responsive: true, plugins: { legend: { display: false } } }
+            });
+
+            new Chart(document.getElementById("categoryChart"), {
+            type: "doughnut",
+            data: {
+                labels: catData.map(x => x.category__category_name),
+                datasets: [{ data: catData.map(x => x.total) }]
+            },
+            options: { responsive: true }
+            });
+
+            new Chart(document.getElementById("dayChart"), {
+            type: "line",
+            data: {
+                labels: dayData.map(x => x.day),
+                datasets: [{
+                label: "Complaints/day",
+                data: dayData.map(x => x.total),
+                borderColor: "#22C55E",
+                backgroundColor: "rgba(34,197,94,0.12)",
+                fill: true,
+                tension: 0.3
+                }]
+            },
+            options: { responsive: true }
+            });
+        }
+
+        Promise.all([initMap(), initCharts()]).catch(console.error);
+    </script>
+    {% block extra_js %}{% endblock %}
 </body>
 
 </html>

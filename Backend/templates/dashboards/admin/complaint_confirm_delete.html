@@ -1,0 +1,30 @@
+{% extends "dashboards/admin/admin-dashboard.html" %}
+
+{% block title %}Delete Complaint - Admin{% endblock %}
+
+{% block content %}
+<header class="mb-8">
+    <h1 class="text-3xl font-bold text-gray-900">Delete Complaint</h1>
+    <p class="text-gray-500">This action cannot be undone.</p>
+</header>
+
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 max-w-2xl">
+    <p class="text-gray-800 mb-6">
+        Are you sure you want to delete:
+        <span class="font-bold">{{ object.title }}</span> ?
+    </p>
+
+    <form method="post" class="flex gap-3">
+        {% csrf_token %}
+        <button type="submit"
+            class="bg-red-600 text-white hover:bg-red-700 px-4 py-2 rounded-lg font-medium transition-colors">
+            Yes, Delete
+        </button>
+
+        <a href="{% url 'admin_complaint_detail' object.pk %}"
+            class="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-lg font-medium transition-colors">
+            Cancel
+        </a>
+    </form>
+</div>
+{% endblock %}

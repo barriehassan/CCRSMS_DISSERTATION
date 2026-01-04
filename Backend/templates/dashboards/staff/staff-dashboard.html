@@ -4,13 +4,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Officer Dashboard - CCRSMS</title>
+    <title>{% block title %}Staff Portal - CCRSMS{% endblock %}</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Leaflet + Cluster + Heat -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+
+    <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
 
     <script>
         tailwind.config = {
@@ -33,7 +43,13 @@
         body {
             font-family: 'Inter', sans-serif;
         }
+
+        #complaintsMap {
+            height: 420px;
+            border-radius: 14px;
+        }
     </style>
+    {% block extra_head %}{% endblock %}
 </head>
 
 <body class="bg-gray-100">
@@ -49,12 +65,12 @@
             </div>
 
             <nav class="flex-grow p-3 space-y-2 overflow-y-auto overflow-x-hidden">
-                <a href="dashboard.html"
+                <a href="{% url 'staff_dashboard' %}"
                     class="flex items-center gap-3 px-3 py-3 rounded-lg transition-colors font-medium whitespace-nowrap bg-blue-50 text-blue-600">
                     <i class="fas fa-tachometer-alt text-lg flex-shrink-0"></i>
                     <span>Dashboard</span>
                 </a>
-                <a href="#"
+                <a href="{% url 'staff_complaint_list' %}"
                     class="flex items-center gap-3 px-3 py-3 rounded-lg transition-colors font-medium whitespace-nowrap text-gray-600 hover:bg-gray-50 hover:text-gray-900">
                     <i class="fas fa-clipboard-list text-lg flex-shrink-0"></i>
                     <span>Assigned Complaints</span>
@@ -91,129 +107,336 @@
 
         <!-- Main Content -->
         <main class="flex-grow bg-gray-100 min-h-screen p-8 ml-64">
-            <header class="mb-8">
-                <h1 class="text-3xl font-bold text-gray-900">Officer Dashboard</h1>
-                <p class="text-gray-500">Welcome back, Officer. Here's your daily overview.</p>
-            </header>
+            {% block content %}
+            <div class="max-w-7xl mx-auto">
 
-            <!-- KPI Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <!-- Stat 1 -->
-                <div
-                    class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex items-center gap-4 hover:shadow-md transition-shadow">
-                    <div class="p-4 rounded-full bg-blue-100 text-blue-600 text-2xl">
-                        <i class="fas fa-clipboard-list"></i>
-                    </div>
-                    <div>
-                        <p class="text-gray-500 text-sm font-medium">Assigned Complaints</p>
-                        <h3 class="text-2xl font-bold text-gray-900">12</h3>
-                    </div>
-                </div>
+                {% if request.user.is_authenticated %}
+                <header class="mb-8">
+                    <h1 class="text-3xl font-bold text-gray-900">Officer Dashboard</h1>
+                    <p class="text-gray-500">
+                        Welcome back, {{request.user.staffprofile.role}} {{ request.user.first_name }} {{ request.user.last_name }}.
+                        Ward: <span class="font-medium">{{ request.user.ward }}</span>
+                    </p>
+                </header>
+                {% endif %}
 
-                <!-- Stat 2 -->
-                <div
-                    class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex items-center gap-4 hover:shadow-md transition-shadow">
-                    <div class="p-4 rounded-full bg-yellow-100 text-yellow-600 text-2xl">
-                        <i class="fas fa-spinner"></i>
-                    </div>
-                    <div>
-                        <p class="text-gray-500 text-sm font-medium">In Progress</p>
-                        <h3 class="text-2xl font-bold text-gray-900">5</h3>
-                    </div>
-                </div>
-
-                <!-- Stat 3 -->
-                <div
-                    class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex items-center gap-4 hover:shadow-md transition-shadow">
-                    <div class="p-4 rounded-full bg-green-100 text-green-600 text-2xl">
-                        <i class="fas fa-check-circle"></i>
-                    </div>
-                    <div>
-                        <p class="text-gray-500 text-sm font-medium">Resolved</p>
-                        <h3 class="text-2xl font-bold text-gray-900">45</h3>
-                    </div>
-                </div>
-
-                <!-- Stat 4 -->
-                <div
-                    class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex items-center gap-4 hover:shadow-md transition-shadow">
-                    <div class="p-4 rounded-full bg-red-100 text-red-600 text-2xl">
-                        <i class="fas fa-exclamation-triangle"></i>
-                    </div>
-                    <div>
-                        <p class="text-gray-500 text-sm font-medium">Pending</p>
-                        <h3 class="text-2xl font-bold text-gray-900">3</h3>
-                    </div>
-                </div>
-            </div>
-
-            <div class="grid lg:grid-cols-3 gap-8">
-                <!-- Announcements -->
-                <div class="lg:col-span-2 space-y-6">
-                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                        <h3 class="text-lg font-bold text-gray-900 mb-4">Announcements</h3>
-                        <div class="space-y-4">
-                            <div class="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-600">
-                                <h4 class="font-bold text-blue-600">Heavy Rain Alert</h4>
-                                <p class="text-sm text-gray-600 mt-1">Expect increased drainage complaints in Zone 4 due
-                                    to forecasted heavy rains. Prioritize clearing blockage reports.</p>
-                                <span class="text-xs text-gray-400 mt-2 block">2 hours ago</span>
-                            </div>
-                            <div class="bg-gray-50 p-4 rounded-lg border-l-4 border-gray-400">
-                                <h4 class="font-bold text-gray-800">System Maintenance</h4>
-                                <p class="text-sm text-gray-600 mt-1">The reporting system will undergo maintenance on
-                                    Sunday from 2 AM to 4 AM.</p>
-                                <span class="text-xs text-gray-400 mt-2 block">1 day ago</span>
-                            </div>
+                <!-- KPIs -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex items-center gap-4">
+                        <div class="p-4 rounded-full bg-blue-100 text-blue-600 text-2xl"><i
+                                class="fas fa-clipboard-list"></i></div>
+                        <div>
+                            <p class="text-gray-500 text-sm font-medium">Assigned Complaints</p>
+                            <h3 class="text-2xl font-bold text-gray-900">{{ staff_stats.total|default:0 }}</h3>
                         </div>
                     </div>
 
-                    <!-- Quick Actions -->
-                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                        <h3 class="text-lg font-bold text-gray-900 mb-4">Quick Actions</h3>
-                        <div class="flex gap-4">
-                            <button
-                                class="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors">
-                                Start Field Assignment
-                            </button>
-                            <button
-                                class="flex-1 bg-white border border-gray-300 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-50 transition-colors">
-                                View Pending Tasks
-                            </button>
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex items-center gap-4">
+                        <div class="p-4 rounded-full bg-yellow-100 text-yellow-600 text-2xl"><i
+                                class="fas fa-spinner"></i></div>
+                        <div>
+                            <p class="text-gray-500 text-sm font-medium">In Progress</p>
+                            <h3 class="text-2xl font-bold text-gray-900">{{ staff_stats.in_progress|default:0 }}</h3>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex items-center gap-4">
+                        <div class="p-4 rounded-full bg-green-100 text-green-600 text-2xl"><i
+                                class="fas fa-check-circle"></i></div>
+                        <div>
+                            <p class="text-gray-500 text-sm font-medium">Resolved</p>
+                            <h3 class="text-2xl font-bold text-gray-900">{{ staff_stats.resolved|default:0 }}</h3>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex items-center gap-4">
+                        <div class="p-4 rounded-full bg-red-100 text-red-600 text-2xl"><i
+                                class="fas fa-exclamation-triangle"></i></div>
+                        <div>
+                            <p class="text-gray-500 text-sm font-medium">Pending (Submitted)</p>
+                            <h3 class="text-2xl font-bold text-gray-900">{{ staff_stats.submitted|default:0 }}</h3>
                         </div>
                     </div>
                 </div>
 
-                <!-- Profile Summary -->
-                <div>
-                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 text-center">
-                        <div
-                            class="w-24 h-24 bg-gray-200 rounded-full mx-auto mb-4 overflow-hidden flex items-center justify-center">
-                            <!-- Placeholder Image -->
-                            <i class="fas fa-user text-4xl text-gray-400"></i>
-                        </div>
-                        {% if request.user.is_authenticated %}
-                        <h3 class="text-xl font-bold text-gray-900"> {{request.user.first_name}}
-                            {{request.user.last_name}}</h3>
-                        <p class="text-blue-600 font-medium mb-1">{{request.user.staffprofile.role}}</p>
-                        <p class="text-gray-500 text-sm mb-6">Ward - {{request.user.ward}}</p>
-                        {% endif %}
-
-                        <div class="flex justify-center gap-4 text-center border-t border-gray-100 pt-6">
+                <!-- Map + Right panel -->
+                <div class="grid lg:grid-cols-3 gap-8 mb-8">
+                    <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                        <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
                             <div>
-                                <span class="block text-xl font-bold text-gray-900">125</span>
-                                <span class="text-xs text-gray-500">Resolved</span>
+                                <h3 class="text-lg font-bold text-gray-900">Complaints Map (Your Ward)</h3>
+                                <p class="text-sm text-gray-500">Cluster and hotspot views for ward-level monitoring.
+                                </p>
                             </div>
-                            <div>
-                                <span class="block text-xl font-bold text-gray-900">4.8</span>
-                                <span class="text-xs text-gray-500">Rating</span>
+
+                            <div class="flex flex-wrap items-center gap-2">
+                                <label class="text-sm text-gray-600">View</label>
+                                <select id="mapViewMode"
+                                    class="border border-gray-300 px-3 py-2 rounded-lg text-sm bg-white">
+                                    <option value="cluster" selected>Cluster</option>
+                                    <option value="heat">Heatmap</option>
+                                </select>
+
+                                <label class="text-sm text-gray-600 ml-2">Color by</label>
+                                <select id="colorMode"
+                                    class="border border-gray-300 px-3 py-2 rounded-lg text-sm bg-white">
+                                    <option value="status" selected>Status</option>
+                                    <option value="priority">Priority</option>
+                                </select>
                             </div>
+                        </div>
+
+                        <!-- Filters -->
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
+                            <input type="date" id="dateFrom"
+                                class="border border-gray-300 px-3 py-2 rounded-lg text-sm bg-white" />
+
+                            <select id="categoryFilter"
+                                class="border border-gray-300 px-3 py-2 rounded-lg text-sm bg-white">
+                                <option value="">All Categories</option>
+                                {% for cat in categories %}
+                                <option value="{{ cat.id }}">{{ cat.category_name }}</option>
+                                {% endfor %}
+                            </select>
+
+                            <select id="statusFilter"
+                                class="border border-gray-300 px-3 py-2 rounded-lg text-sm bg-white">
+                                <option value="">All Status</option>
+                                <option value="SUBMITTED">Submitted</option>
+                                <option value="ACKNOWLEDGED">Acknowledged</option>
+                                <option value="IN_PROGRESS">In Progress</option>
+                                <option value="RESOLVED">Resolved</option>
+                                <option value="REJECTED">Rejected</option>
+                            </select>
+                        </div>
+
+                        <!-- Legend -->
+                        <div class="flex flex-wrap items-center gap-4 text-sm mb-3">
+                            <span class="font-medium text-gray-700">Legend:</span>
+                            <span class="inline-flex items-center gap-2"><span class="w-3 h-3 rounded-full"
+                                    style="background:#F59E0B"></span> Submitted</span>
+                            <span class="inline-flex items-center gap-2"><span class="w-3 h-3 rounded-full"
+                                    style="background:#3B82F6"></span> Acknowledged</span>
+                            <span class="inline-flex items-center gap-2"><span class="w-3 h-3 rounded-full"
+                                    style="background:#8B5CF6"></span> In Progress</span>
+                            <span class="inline-flex items-center gap-2"><span class="w-3 h-3 rounded-full"
+                                    style="background:#22C55E"></span> Resolved</span>
+                            <span class="inline-flex items-center gap-2"><span class="w-3 h-3 rounded-full"
+                                    style="background:#EF4444"></span> Rejected</span>
+                        </div>
+
+                        <div id="complaintsMap"></div>
+                    </div>
+
+                    <!-- Right panel: Recent complaints -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-bold text-gray-900">Recent Complaints</h3>
+                            <a href="{% url 'staff_complaint_list' %}"
+                                class="text-sm text-blue-600 hover:underline">View all</a>
+                        </div>
+
+                        <div class="space-y-3">
+                            {% for c in recent_complaints %}
+                            <a href="{% url 'staff_complaint_detail' c.id %}"
+                                class="block p-3 rounded-lg border border-gray-100 hover:bg-gray-50">
+                                <div class="flex items-start justify-between gap-3">
+                                    <div>
+                                        <p class="font-semibold text-gray-900">{{ c.title|truncatechars:40 }}</p>
+                                        <p class="text-xs text-gray-500 mt-1">{{ c.category.category_name }} • {{ c.created_at }}</p>
+                                    </div>
+                                    <span class="text-xs font-semibold px-2 py-1 rounded-full
+                                {% if c.status == 'SUBMITTED' %}bg-yellow-100 text-yellow-800
+                                {% elif c.status == 'ACKNOWLEDGED' %}bg-blue-100 text-blue-800
+                                {% elif c.status == 'IN_PROGRESS' %}bg-purple-100 text-purple-800
+                                {% elif c.status == 'RESOLVED' %}bg-green-100 text-green-800
+                                {% else %}bg-red-100 text-red-800{% endif %}">
+                                        {{ c.get_status_display }}
+                                    </span>
+                                </div>
+                            </a>
+                            {% empty %}
+                            <div class="text-sm text-gray-500">No complaints yet for your ward.</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="mt-6 border-t border-gray-100 pt-5">
+                            <h4 class="font-semibold text-gray-900 mb-2">Profile</h4>
+                            <p class="text-sm text-gray-600">
+                                {% if request.user.is_authenticated %}
+                                <span class="font-medium">{{ request.user.first_name }} {{ request.user.last_name }}</span><br>
+                                Role: {{ request.user.staffprofile.role }}<br>
+                                Ward: {{ request.user.ward }}
+                                {% endif %}
+                            </p>
                         </div>
                     </div>
                 </div>
+
+                {% if messages %}
+                <div class="mb-6 space-y-2">
+                    {% for message in messages %}
+                    <div class="p-3 rounded-lg border
+                            {% if message.tags == 'success' %} bg-green-50 border-green-200 text-green-700
+                            {% elif message.tags == 'error' %} bg-red-50 border-red-200 text-red-700
+                            {% else %} bg-gray-50 border-gray-200 text-gray-700 {% endif %}">
+                        {{ message }}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
             </div>
+            {% endblock %}
         </main>
     </div>
+    <script>
+        // staff detail base
+        const DETAIL_BASE_URL = "/dashboards/staff/complaints/";
+        const GEOJSON_URL = "{% url 'staff_complaints_geojson' %}";
+
+        const STATUS_COLORS = {
+            "SUBMITTED": "#F59E0B",
+            "ACKNOWLEDGED": "#3B82F6",
+            "IN_PROGRESS": "#8B5CF6",
+            "RESOLVED": "#22C55E",
+            "REJECTED": "#EF4444",
+        };
+        const PRIORITY_COLORS = { "LOW": "#22C55E", "MEDIUM": "#F59E0B", "HIGH": "#EF4444" };
+        const PRIORITY_INTENSITY = { "LOW": 0.3, "MEDIUM": 0.6, "HIGH": 1.0 };
+
+        let map, clusterLayer, heatLayer;
+        let currentColorMode = "status";
+        let currentViewMode = "cluster";
+
+        function getColor(p) {
+            if (currentColorMode === "priority") return PRIORITY_COLORS[p.priority_level] || "#6B7280";
+            return STATUS_COLORS[p.status] || "#6B7280";
+        }
+
+        function buildQuery() {
+            const params = new URLSearchParams();
+            const dateFrom = document.getElementById("dateFrom")?.value;
+            const dateTo = document.getElementById("dateTo")?.value;
+            const category = document.getElementById("categoryFilter")?.value;
+            const status = document.getElementById("statusFilter")?.value;
+
+            if (dateFrom) params.set("date_from", dateFrom);
+            if (dateTo) params.set("date_to", dateTo);
+            if (category) params.set("category", category);
+            if (status) params.set("status", status);
+
+            return params.toString() ? `?${params.toString()}` : "";
+        }
+
+        async function loadGeoJSON() {
+            const res = await fetch(`${GEOJSON_URL}${buildQuery()}`, { credentials: "same-origin" });
+            if (!res.ok) throw new Error("Failed to load GeoJSON");
+            return await res.json();
+        }
+
+        function clearLayers() {
+            if (clusterLayer) clusterLayer.remove();
+            if (heatLayer) heatLayer.remove();
+            clusterLayer = null;
+            heatLayer = null;
+        }
+
+        function renderCluster(data) {
+            clusterLayer = L.markerClusterGroup();
+
+            const geo = L.geoJSON(data, {
+                pointToLayer: (feature, latlng) => {
+                    const p = feature.properties || {};
+                    const color = getColor(p);
+
+                    const marker = L.circleMarker(latlng, {
+                        radius: 7,
+                        color: color,
+                        fillColor: color,
+                        fillOpacity: 0.85,
+                        weight: 2,
+                    });
+
+                    const url = `${DETAIL_BASE_URL}${p.complaint_id}/`;
+                    marker.bindPopup(`
+                <div style="min-width:240px">
+                    <div style="font-weight:800;margin-bottom:4px">${p.title || "Complaint"}</div>
+                    <div style="font-size:12px;color:#6B7280">
+                    <div><b>ID:</b> #${p.complaint_id || ""}</div>
+                    <div><b>Status:</b> ${p.status || ""}</div>
+                    <div><b>Priority:</b> ${p.priority_level || ""}</div>
+                    <div><b>Category:</b> ${p.category || ""}</div>
+                    <div><b>Citizen:</b> ${p.citizen_name || ""}</div>
+                    <div style="margin-top:10px">
+                        <a href="${url}" style="color:#2563EB;text-decoration:underline;font-weight:600">Open complaint detail</a>
+                    </div>
+                    </div>
+                </div>
+                `);
+
+                    return marker;
+                }
+            });
+
+            geo.eachLayer(l => clusterLayer.addLayer(l));
+            clusterLayer.addTo(map);
+
+            const bounds = geo.getBounds();
+            if (bounds.isValid()) map.fitBounds(bounds.pad(0.2));
+        }
+
+        function renderHeat(data) {
+            const heatPoints = [];
+            (data.features || []).forEach(f => {
+                const coords = f.geometry?.coordinates;
+                if (!coords) return;
+                const lng = coords[0];
+                const lat = coords[1];
+                const p = f.properties || {};
+                const intensity = PRIORITY_INTENSITY[p.priority_level] || 0.4;
+                heatPoints.push([lat, lng, intensity]);
+            });
+
+            heatLayer = L.heatLayer(heatPoints, { radius: 25, blur: 18, maxZoom: 17 }).addTo(map);
+
+            const latlngs = heatPoints.map(h => L.latLng(h[0], h[1]));
+            if (latlngs.length) map.fitBounds(L.latLngBounds(latlngs).pad(0.2));
+        }
+
+        async function refreshMap() {
+            const data = await loadGeoJSON();
+            clearLayers();
+            if (currentViewMode === "heat") renderHeat(data);
+            else renderCluster(data);
+        }
+
+        async function initMap() {
+            map = L.map("complaintsMap").setView([8.46, -11.78], 12);
+            L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+                maxZoom: 19, attribution: "&copy; OpenStreetMap contributors"
+            }).addTo(map);
+
+            await refreshMap();
+
+            document.getElementById("colorMode").addEventListener("change", async (e) => {
+                currentColorMode = e.target.value;
+                await refreshMap();
+            });
+
+            document.getElementById("mapViewMode").addEventListener("change", async (e) => {
+                currentViewMode = e.target.value;
+                await refreshMap();
+            });
+
+            ["dateFrom", "dateTo", "categoryFilter", "statusFilter"].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.addEventListener("change", refreshMap);
+            });
+        }
+
+        initMap().catch(console.error);
+    </script>
+    {% block extra_js %}{% endblock %}
 </body>
 
 </html>

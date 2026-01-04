@@ -19,6 +19,18 @@ from .notifications import (
     notify_staff_complaint_updated,
 )
 from .permissions import *
+from .forms import StaffComplaintUpdateForm, AdminComplaintUpdateForm
+from django.db.models import Q
+from django.http import JsonResponse
+from django.core.serializers import serialize
+from django.utils.dateparse import parse_date
+from django.views import View
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import never_cache
+import json
+from django.db.models import Count
+from django.db.models.functions import TruncDate
+
 
 
 # Create your views here.
@@ -141,18 +153,45 @@ class StaffComplaintListView(
     template_name = "dashboards/staff/complaints.html"
     context_object_name = "complaints"
     required_role = "STAFF"
+    paginate_by = 10  # ✅ pagination
 
     def get_queryset(self):
-        # Staff sees complaints where citizen ward == staff ward
-        return Complaint.objects.filter(
-            citizen__ward=self.request.user.ward
-        ).order_by("-created_at")
+        qs = Complaint.objects.filter(citizen__ward=self.request.user.ward).select_related("category", "citizen").order_by("-created_at")
+
+        q = self.request.GET.get("q", "").strip()
+        status = self.request.GET.get("status", "").strip()
+        priority = self.request.GET.get("priority", "").strip()
+        category = self.request.GET.get("category", "").strip()
+
+        if q:
+            # allow searching by id OR title
+            qs = qs.filter(
+                Q(title__icontains=q) |
+                Q(id__icontains=q)
+            )
+
+        if status:
+            qs = qs.filter(status=status)
+
+        if priority:
+            qs = qs.filter(priority_level=priority)
+
+        if category:
+            qs = qs.filter(category_id=category)
+
+        return qs
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["categories"] = ComplaintCategory.objects.all().order_by("category_name")
+        return ctx
+
 
 
 class StaffComplaintDetailView(
     SessionStaffUserMixin, KnoxSessionRequiredMixin, RoleRequiredMixin, DetailView
 ):
-    template_name = "complaints/staff/complaint_detail.html"
+    template_name = "dashboards/staff/complaint_detail.html"
     model = Complaint
     context_object_name = "complaint"
     required_role = "STAFF"
@@ -160,12 +199,13 @@ class StaffComplaintDetailView(
     def get_queryset(self):
         return Complaint.objects.filter(citizen__ward=self.request.user.ward)
 
-class StaffComplaintUpdateView(SessionStaffUserMixin, KnoxSessionRequiredMixin, RoleRequiredMixin, UpdateView):
-    template_name = "complaints/staff/complaint_update.html"
+class StaffComplaintUpdateView(
+    SessionStaffUserMixin, KnoxSessionRequiredMixin, RoleRequiredMixin, UpdateView):
+    template_name = "dashboards/staff/complaint_update.html"
     model = Complaint
     context_object_name = "complaint"
     required_role = "STAFF"
-    fields = ("status", "priority_level")
+    form_class = StaffComplaintUpdateForm 
 
     def get_queryset(self):
         return Complaint.objects.filter(citizen__ward=self.request.user.ward)
@@ -193,15 +233,44 @@ class AdminComplaintListView(
     template_name = "dashboards/admin/complaints.html"
     context_object_name = "complaints"
     required_role = "ADMIN"
+    paginate_by = 10  # ✅ pagination
 
     def get_queryset(self):
-        return Complaint.objects.all().order_by("-created_at")
+        qs = Complaint.objects.all().select_related("category", "citizen").order_by("-created_at")
+
+        q = self.request.GET.get("q", "").strip()
+        status = self.request.GET.get("status", "").strip()
+        category = self.request.GET.get("category", "").strip()
+
+        if q:
+            qs = qs.filter(
+                Q(title__icontains=q) |
+                Q(description__icontains=q) |
+                Q(id__icontains=q) |
+                Q(citizen__first_name__icontains=q) |
+                Q(citizen__last_name__icontains=q) |
+                Q(citizen__email__icontains=q)
+            )
+
+        if status:
+            qs = qs.filter(status=status)
+
+        if category:
+            qs = qs.filter(category_id=category)
+
+        return qs
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["categories"] = ComplaintCategory.objects.all().order_by("category_name")
+        return ctx
+
 
 
 class AdminComplaintDetailView(
     SessionStaffUserMixin, KnoxSessionRequiredMixin, RoleRequiredMixin, DetailView
 ):
-    template_name = "complaints/admin/complaint_detail.html"
+    template_name = "dashboards/admin/complaint_detail.html"
     model = Complaint
     context_object_name = "complaint"
     required_role = "ADMIN"
@@ -210,13 +279,11 @@ class AdminComplaintDetailView(
 class AdminComplaintUpdateView(
     SessionStaffUserMixin, KnoxSessionRequiredMixin, RoleRequiredMixin, UpdateView
 ):
-    template_name = "complaints/admin/complaint_update.html"
+    template_name = "dashboards/admin/complaint_update.html"
     model = Complaint
     context_object_name = "complaint"
     required_role = "ADMIN"
-
-    # admin can update more fields (adjust as needed)
-    fields = ("status", "priority_level", "category", "title", "description")
+    form_class = AdminComplaintUpdateForm 
 
     def form_valid(self, form):
         complaint = form.save()
@@ -234,11 +301,133 @@ class AdminComplaintUpdateView(
 class AdminComplaintDeleteView(
     SessionStaffUserMixin, KnoxSessionRequiredMixin, RoleRequiredMixin, DeleteView
 ):
-    template_name = "complaints/admin/complaint_confirm_delete.html"
+    template_name = "dashboards/admin/complaint_confirm_delete.html"
     model = Complaint
+    context_object_name = "complaint"
     required_role = "ADMIN"
     success_url = reverse_lazy("admin_complaint_list")
 
     def delete(self, request, *args, **kwargs):
         messages.success(request, "Complaint deleted successfully.")
         return super().delete(request, *args, **kwargs)
+
+
+@method_decorator(never_cache, name="dispatch")
+class StaffComplaintsGeoJSONView(SessionStaffUserMixin, KnoxSessionRequiredMixin, RoleRequiredMixin, View):
+    required_role = "STAFF"
+
+    def get(self, request, *args, **kwargs):
+        qs = Complaint.objects.filter(citizen__ward=request.user.ward).select_related("citizen", "category")
+
+        qs = apply_complaint_filters(qs, request, allow_admin_filters=False)
+
+        geojson = serialize(
+            "geojson",
+            qs,
+            geometry_field="location",
+            fields=("title", "status", "priority_level", "created_at"),
+        )
+        data = json.loads(geojson)
+        for feat in data.get("features", []):
+            pk = feat["properties"].get("pk")
+            complaint = qs.filter(pk=pk).first()
+            if complaint:
+                feat["properties"]["complaint_id"] = complaint.pk
+                feat["properties"]["category"] = complaint.category.category_name if complaint.category else ""
+                feat["properties"]["citizen_name"] = f"{complaint.citizen.first_name} {complaint.citizen.last_name}".strip()
+        return JsonResponse(data, safe=False)
+
+
+@method_decorator(never_cache, name="dispatch")
+class AdminComplaintsGeoJSONView(SessionStaffUserMixin, KnoxSessionRequiredMixin, RoleRequiredMixin, View):
+    required_role = "ADMIN"
+
+    def get(self, request, *args, **kwargs):
+        qs = Complaint.objects.all().select_related("citizen", "category", "category__department")
+
+        qs = apply_complaint_filters(qs, request, allow_admin_filters=True)
+
+        geojson = serialize(
+            "geojson",
+            qs,
+            geometry_field="location",
+            fields=("title", "status", "priority_level", "created_at"),
+        )
+        data = json.loads(geojson)
+        for feat in data.get("features", []):
+            pk = feat["properties"].get("pk")
+            complaint = qs.filter(pk=pk).first()
+            if complaint:
+                feat["properties"]["complaint_id"] = complaint.pk
+                feat["properties"]["category"] = complaint.category.category_name if complaint.category else ""
+                feat["properties"]["citizen_name"] = f"{complaint.citizen.first_name} {complaint.citizen.last_name}".strip()
+        return JsonResponse(data, safe=False)
+
+
+def apply_complaint_filters(qs, request, allow_admin_filters: bool):
+    q_status = request.GET.get("status", "").strip()
+    q_priority = request.GET.get("priority", "").strip()
+    q_category = request.GET.get("category", "").strip()
+
+    date_from = parse_date(request.GET.get("date_from", "") or "")
+    date_to = parse_date(request.GET.get("date_to", "") or "")
+
+    if q_status:
+        qs = qs.filter(status=q_status)
+    if q_priority:
+        qs = qs.filter(priority_level=q_priority)
+    if q_category:
+        qs = qs.filter(category_id=q_category)
+
+    if date_from:
+        qs = qs.filter(created_at__date__gte=date_from)
+    if date_to:
+        qs = qs.filter(created_at__date__lte=date_to)
+
+    if allow_admin_filters:
+        ward_id = request.GET.get("ward", "").strip()
+        dept_id = request.GET.get("department", "").strip()
+
+        if ward_id:
+            qs = qs.filter(citizen__ward_id=ward_id)
+        if dept_id:
+            qs = qs.filter(category__department_id=dept_id)
+
+    return qs
+
+
+class AdminWardCountsView(View):
+    def get(self, request):
+        data = (
+            Complaint.objects
+            .values("citizen__ward__name")
+            .annotate(total=Count("id"))
+            .order_by("-total")
+        )
+        return JsonResponse(list(data), safe=False)
+
+
+class AdminCategoryCountsView(View):
+    def get(self, request):
+        data = (
+            Complaint.objects
+            .values("category__category_name")
+            .annotate(total=Count("id"))
+            .order_by("-total")
+        )
+        return JsonResponse(list(data), safe=False)
+
+
+class AdminDailyCountsView(View):
+    def get(self, request):
+        data = (
+            Complaint.objects
+            .annotate(day=TruncDate("created_at"))
+            .values("day")
+            .annotate(total=Count("id"))
+            .order_by("day")
+        )
+        # Convert date to string for JSON
+        data = [{"day": str(x["day"]), "total": x["total"]} for x in data]
+        return JsonResponse(data, safe=False)
+

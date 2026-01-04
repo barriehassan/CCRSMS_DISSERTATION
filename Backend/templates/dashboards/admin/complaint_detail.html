@@ -1,0 +1,76 @@
+{% extends "dashboards/admin/admin-dashboard.html" %}
+
+{% block title %}Complaint Detail - Admin{% endblock %}
+
+{% block content %}
+<header class="mb-8 flex items-center justify-between">
+    <div>
+        <h1 class="text-3xl font-bold text-gray-900">Complaint Detail</h1>
+        <p class="text-gray-500">Full control: update or delete complaint.</p>
+    </div>
+
+    <div class="flex gap-3">
+        <a href="{% url 'admin_complaint_update' complaint.pk %}"
+            class="bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition-colors shadow-sm">
+            <i class="fas fa-pen"></i> Edit
+        </a>
+
+        <a href="{% url 'admin_complaint_delete' complaint.pk %}"
+            class="bg-red-600 text-white hover:bg-red-700 px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition-colors shadow-sm">
+            <i class="fas fa-trash"></i> Delete
+        </a>
+
+        <a href="{% url 'admin_complaint_list' %}"
+            class="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition-colors">
+            <i class="fas fa-arrow-left"></i> Back
+        </a>
+    </div>
+</header>
+
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">
+    <div class="grid md:grid-cols-2 gap-6">
+        <div>
+            <p class="text-sm text-gray-500">Title</p>
+            <p class="font-semibold text-gray-900">{{ complaint.title }}</p>
+        </div>
+
+        <div>
+            <p class="text-sm text-gray-500">Category</p>
+            <p class="font-semibold text-gray-900">{{ complaint.category.category_name }}</p>
+        </div>
+
+        <div>
+            <p class="text-sm text-gray-500">Status</p>
+            <p class="font-semibold text-gray-900">{{ complaint.get_status_display }}</p>
+        </div>
+
+        <div>
+            <p class="text-sm text-gray-500">Priority</p>
+            <p class="font-semibold text-gray-900">{{ complaint.get_priority_level_display }}</p>
+        </div>
+
+        <div>
+            <p class="text-sm text-gray-500">Citizen</p>
+            <p class="font-semibold text-gray-900">{{ complaint.citizen.first_name }} {{ complaint.citizen.last_name }}
+            </p>
+        </div>
+
+        <div>
+            <p class="text-sm text-gray-500">Ward</p>
+            <p class="font-semibold text-gray-900">{{ complaint.citizen.ward }}</p>
+        </div>
+    </div>
+
+    <div>
+        <p class="text-sm text-gray-500">Description</p>
+        <p class="text-gray-900 mt-1">{{ complaint.description }}</p>
+    </div>
+
+    {% if complaint.evidence_image %}
+    <div class="pt-4 border-t">
+        <p class="text-sm text-gray-500 mb-2">Evidence</p>
+        <img src="{{ complaint.evidence_image.url }}" alt="Evidence" class="rounded-lg border border-gray-200 max-w-md">
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
