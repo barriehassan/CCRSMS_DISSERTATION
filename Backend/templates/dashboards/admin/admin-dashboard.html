@@ -197,8 +197,8 @@
 
                     <!-- Filters -->
                     <div class="grid grid-cols-1 md:grid-cols-6 gap-3 mb-4">
-                    <input type="date" id="dateFrom" class="border border-gray-300 px-3 py-2 rounded-lg text-sm bg-white" />
-                    <input type="date" id="dateTo" class="border border-gray-300 px-3 py-2 rounded-lg text-sm bg-white" />
+                    <!-- <input type="date" id="dateFrom" class="border border-gray-300 px-3 py-2 rounded-lg text-sm bg-white" />
+                    <input type="date" id="dateTo" class="border border-gray-300 px-3 py-2 rounded-lg text-sm bg-white" /> -->
 
                     <select id="categoryFilter" class="border border-gray-300 px-3 py-2 rounded-lg text-sm bg-white">
                         <option value="">All Categories</option>
@@ -353,11 +353,11 @@
                 <div style="min-width:240px">
                     <div style="font-weight:800;margin-bottom:4px">${p.title || "Complaint"}</div>
                     <div style="font-size:12px;color:#6B7280">
-                    <div><b>ID:</b> #${p.complaint_id || ""}</div>
+                    <div><b>ID:</b> #${p.id || ""}</div>
                     <div><b>Status:</b> ${p.status || ""}</div>
                     <div><b>Priority:</b> ${p.priority_level || ""}</div>
                     <div><b>Category:</b> ${p.category || ""}</div>
-                    <div><b>Citizen:</b> ${p.citizen_name || ""}</div>
+                    <div><b>Citizen:</b> ${p.citizen || ""}</div>
                     <div style="margin-top:10px">
                         <a href="${url}" style="color:#2563EB;text-decoration:underline;font-weight:600">Open complaint detail</a>
                     </div>

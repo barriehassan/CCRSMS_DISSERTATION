@@ -81,7 +81,9 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 CORS_ALLOWED_ORIGINS = [
-    'http://localhost:5173'
+    'http://localhost:5173',
+    'https://fwkdn87g-5173.uks1.devtunnels.ms'
+    
 ]
 
 
