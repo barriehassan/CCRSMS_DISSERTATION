@@ -25,7 +25,8 @@ urlpatterns = [
 
     # App-level URLs (routers)
     path('', include('accounts.urls')),  # citizen/staff auth, profiles
-    path('core/', include('core.urls')),          # other app endpoints
+    path('core/', include('core.urls')),
+    path('billing/', include('billing.urls')),          # other app endpoints
     # Knox Logout (global token management)
     path('api/logout/', knox_views.LogoutView.as_view(), name='knox_logout'),
     path('api/logoutall/', knox_views.LogoutAllView.as_view(), name='knox_logoutall'),

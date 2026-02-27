@@ -13,7 +13,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 from pathlib import Path
 import os
 from datetime import timedelta
-
+from decimal import Decimal
 from environ import Env
 env = Env()
 env.read_env()
@@ -38,7 +38,7 @@ SECRET_KEY = 'django-insecure-f6+kr*7(d$5pa)0@c=-#xr)a1t_v8rm-%z@$b1*2#naepk-g=$
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -57,7 +57,7 @@ INSTALLED_APPS = [
     'phonenumber_field',
     'knox',
     'corsheaders',
-    
+    'billing',
     
 ]
 
@@ -82,7 +82,8 @@ AUTHENTICATION_BACKENDS = [
 
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:5173',
-    'https://fwkdn87g-5173.uks1.devtunnels.ms'
+    'https://fwkdn87g-5173.uks1.devtunnels.ms',
+    'http://192.168.1.123:5173'
     
 ]
 
@@ -194,3 +195,12 @@ DEFAULT_FROM_EMAIL = f'CCRSMS {"environ.get('EMAIL_ADDRESS')"}'
 TWILIO_ACCOUNT_SID = env("TWILIO_ACCOUNT_SID")
 TWILIO_AUTH_TOKEN = env("TWILIO_AUTH_TOKEN")
 TWILIO_FROM_NUMBER = env("TWILIO_FROM_NUMBER")
+
+#=================================================
+# PAYMENT CONFIGURATION WITH STRIPE
+#=================================================
+STRIPE_SECRET_KEY = env("STRIPE_SECRET_KEY")
+STRIPE_PUBLISHABLE_KEY = env("STRIPE_PUBLISHABLE_KEY")
+FRONTEND_URL = env("FRONTEND_URL", default="http://localhost:5173")
+SLL_PER_USD = Decimal(env("SLL_PER_USD", default="23000"))  # e.g. 1 USD = 23,000 Le
+STRIPE_CURRENCY = "usd"

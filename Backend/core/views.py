@@ -17,8 +17,9 @@ from .notifications import (
     notify_staff_complaint_created,
     notify_citizen_complaint_updated,
     notify_staff_complaint_updated,
+    notify_citizen_complaint_deleted
 )
-from .permissions import *
+from .permissions import IsCitizen, IsOwnerCitizen, CitizenCanEditOnlyWhenSubmitted
 from .forms import StaffComplaintUpdateForm, AdminComplaintUpdateForm
 from django.db.models import Q
 from django.http import JsonResponse
