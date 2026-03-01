@@ -202,5 +202,5 @@ TWILIO_FROM_NUMBER = env("TWILIO_FROM_NUMBER")
 STRIPE_SECRET_KEY = env("STRIPE_SECRET_KEY")
 STRIPE_PUBLISHABLE_KEY = env("STRIPE_PUBLISHABLE_KEY")
 FRONTEND_URL = env("FRONTEND_URL", default="http://localhost:5173")
-SLL_PER_USD = Decimal(env("SLL_PER_USD", default="23000"))  # e.g. 1 USD = 23,000 Le
+SLL_PER_USD = Decimal(env("SLL_PER_USD", default="22"))  # e.g. 1 USD = 25 Le
 STRIPE_CURRENCY = "usd"
