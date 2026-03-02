@@ -1,0 +1,111 @@
+{% extends "dashboards/staff/staff-dashboard.html" %}
+
+{% block title %}Payment Detail - Staff Portal{% endblock %}
+
+{% block content %}
+<header class="mb-8 flex items-center justify-between">
+  <div>
+    <h1 class="text-3xl font-bold text-gray-900">Payment Detail</h1>
+    <p class="text-gray-500">Payment #{{ payment.id }} • {{ payment.bill.get_service_type_display }}</p>
+  </div>
+  <a href="{% url 'staff_payment_list' %}"
+    class="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors">
+    <i class="fas fa-arrow-left mr-2"></i>Back
+  </a>
+</header>
+
+<div class="grid lg:grid-cols-3 gap-8">
+  <!-- Payment Summary -->
+  <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+    <h3 class="text-lg font-bold text-gray-900 mb-4">Payment Summary</h3>
+
+    <div class="grid md:grid-cols-2 gap-4">
+      <div class="p-4 rounded-lg border border-gray-100">
+        <p class="text-xs text-gray-500 uppercase">Amount</p>
+        <p class="mt-1 text-2xl font-bold text-gray-900">{{ payment.amount }}</p>
+      </div>
+
+      <div class="p-4 rounded-lg border border-gray-100">
+        <p class="text-xs text-gray-500 uppercase">Status</p>
+        <p class="mt-1 font-semibold">
+          <span class="px-3 py-1 rounded-full text-xs font-semibold
+            {% if payment.status == 'PAID' %} bg-green-100 text-green-800
+            {% elif payment.status == 'FAILED' %} bg-red-100 text-red-800
+            {% else %} bg-yellow-100 text-yellow-800 {% endif %}">
+            {{ payment.get_status_display }}
+          </span>
+        </p>
+      </div>
+
+      <div class="p-4 rounded-lg border border-gray-100">
+        <p class="text-xs text-gray-500 uppercase">Created</p>
+        <p class="mt-1 font-semibold text-gray-900">{{ payment.created_at }}</p>
+      </div>
+
+      <div class="p-4 rounded-lg border border-gray-100">
+        <p class="text-xs text-gray-500 uppercase">Paid At</p>
+        <p class="mt-1 font-semibold text-gray-900">{{ payment.paid_at|default:"-" }}</p>
+      </div>
+
+      <div class="p-4 rounded-lg border border-gray-100 md:col-span-2">
+        <p class="text-xs text-gray-500 uppercase">Stripe References</p>
+        <p class="mt-2 text-sm text-gray-700">
+          <span class="font-semibold">Session:</span> {{ payment.stripe_checkout_session_id|default:"-"|truncatechars:20 }}<br>
+          <span class="font-semibold">Intent:</span> {{ payment.stripe_payment_intent_id|default:"-" }}
+        </p>
+      </div>
+    </div>
+
+    <div class="mt-6">
+      <h4 class="text-md font-bold text-gray-900 mb-2">Receipt</h4>
+      {% if payment.receipt_pdf %}
+        <a href="{{ payment.receipt_pdf.url }}" target="_blank"
+          class="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors">
+          <i class="fas fa-file-pdf"></i> Download Receipt PDF
+        </a>
+      {% else %}
+        <p class="text-sm text-gray-500">No receipt available for this payment.</p>
+      {% endif %}
+    </div>
+
+    <div class="mt-8 border-t border-gray-100 pt-6">
+      <h4 class="text-md font-bold text-gray-900 mb-3">Related Bill</h4>
+      <div class="grid md:grid-cols-2 gap-4">
+        <div class="p-4 rounded-lg border border-gray-100">
+          <p class="text-xs text-gray-500 uppercase">Bill ID</p>
+          <p class="mt-1 font-semibold text-gray-900">#{{ payment.bill.id }}</p>
+        </div>
+        <div class="p-4 rounded-lg border border-gray-100">
+          <p class="text-xs text-gray-500 uppercase">Bill Status</p>
+          <p class="mt-1 font-semibold text-gray-900">{{ payment.bill.get_status_display }}</p>
+        </div>
+        <div class="p-4 rounded-lg border border-gray-100">
+          <p class="text-xs text-gray-500 uppercase">Amount Due</p>
+          <p class="mt-1 font-semibold text-gray-900">{{ payment.bill.amount_due }}</p>
+        </div>
+        <div class="p-4 rounded-lg border border-gray-100">
+          <p class="text-xs text-gray-500 uppercase">Amount Paid</p>
+          <p class="mt-1 font-semibold text-gray-900">{{ payment.bill.amount_paid }}</p>
+        </div>
+      </div>
+
+      <div class="mt-4">
+        <a href="{% url 'staff_bill_detail' payment.bill.id %}"
+          class="text-blue-600 hover:underline text-sm font-medium">
+          Open Bill Detail →
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Citizen Card -->
+  <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+    <h3 class="text-lg font-bold text-gray-900 mb-4">Citizen</h3>
+    <div class="space-y-2 text-sm text-gray-700">
+      <p><span class="font-semibold">Name:</span> {{ payment.bill.user.first_name }} {{ payment.bill.user.last_name }}</p>
+      <p><span class="font-semibold">Email:</span> {{ payment.bill.user.email }}</p>
+      <p><span class="font-semibold">Ward:</span> {{ payment.bill.user.ward }}</p>
+    </div>
+  </div>
+</div>
+{% endblock %}

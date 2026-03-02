@@ -5,6 +5,7 @@ from django.conf import settings
 from django.utils import timezone
 from django.db import transaction
 from datetime import timedelta
+from django.contrib import messages
 
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
@@ -24,6 +25,9 @@ from .models import (
     WasteWardMeta,
     WasteBlockProvider,
     WasteBlock,
+    BusinessLicenseDemandNotice, 
+    DemandNoticeStatus,
+    Business
 )
 from .serializers import (
     LocalTaxCheckoutSerializer,
@@ -33,6 +37,10 @@ from .serializers import (
     WastePlanSerializer,
     WasteCheckoutSerializer,
     WasteCoverageSerializer,
+    BusinessLicenseCheckoutSerializer,
+    BusinessLicenseCheckoutResponseSerializer,
+    BusinessLicenseDemandNoticeSerializer,
+    BusinessSerializer,
 )
 from .notifications import(
     notify_admin_payment_success,
@@ -43,16 +51,27 @@ from .reciepts import (
     build_local_tax_receipt_pdf, 
     build_city_rate_receipt_pdf,
     build_waste_collection_receipt_pdf,
+    build_business_license_receipt_pdf,
 )
+from .forms import StaffBusinessNoticeVerifyForm
 from django.db.models import Sum, Value, DecimalField
 from django.db.models.functions import Coalesce
 from .serializers import PaymentListSerializer, PaymentDetailSerializer, BillSerializer, CityRateCheckoutSerializer
+from django.shortcuts import redirect
+from django.views.generic import ListView, DetailView, UpdateView
+from django.db.models import Q
+from django.utils.dateparse import parse_date
+from accounts.mixins import KnoxSessionRequiredMixin, RoleRequiredMixin
+from django.contrib.auth import get_user_model
+
+
+User = get_user_model()
 
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
 
-LOCAL_TAX_AMOUNT = Decimal("10.00")  # Le 12.00 (your requirement)
+LOCAL_TAX_AMOUNT = Decimal("10.00")  # Le 10.00 (your requirement)
 
 
 class LocalTaxViewSet(viewsets.ViewSet):
@@ -756,5 +775,561 @@ class WasteCollectionViewSet(viewsets.ViewSet):
             )
         except Exception as e:
             return Response({"error": str(e)}, status=400)
+
+class BusinessLicensePaymentViewSet(viewsets.ViewSet):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def _sle_to_usd_cents(self, amount_sle: Decimal) -> int:
+        sle_per_usd = Decimal(str(getattr(settings, "SLL_PER_USD", "25")))
+        usd = (amount_sle / sle_per_usd).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        return int((usd * 100).to_integral_value(rounding=ROUND_HALF_UP))
+
+    def _get_or_create_bill_for_notice(self, user, notice: BusinessLicenseDemandNotice) -> Bill:
+        # if already linked bill exists, reuse it if still unpaid
+        if notice.bill and notice.bill.status in [BillStatus.PENDING, BillStatus.PARTIAL]:
+            return notice.bill
+
+        bill = Bill.objects.create(
+            user=user,
+            service_type=ServiceType.BUSINESS_LICENSE,
+            amount_due=notice.amount_due,
+            amount_paid=Decimal("0.00"),
+            status=BillStatus.PENDING,
+            allow_installments=False,
+            max_installments=1,
+            installment_count=0,
+            due_date=notice.due_date,
+        )
+        notice.bill = bill
+        notice.save(update_fields=["bill"])
+        return bill
+
+    @action(detail=False, methods=["post"], url_path="checkout")
+    def checkout(self, request):
+        ser = BusinessLicenseCheckoutSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+
+        user = request.user
+        notice_id = ser.validated_data["notice_id"]
+
+        notice = BusinessLicenseDemandNotice.objects.select_related("business").filter(
+            id=notice_id, owner=user
+        ).first()
+        if not notice:
+            return Response({"error": "Demand notice not found."}, status=404)
+
+        if notice.status != DemandNoticeStatus.VERIFIED:
+            return Response({"error": "Demand notice must be VERIFIED before payment."}, status=400)
+
+        bill = self._get_or_create_bill_for_notice(user, notice)
+
+        if bill.status == BillStatus.PAID:
+            return Response({"error": "Business license already paid."}, status=400)
+
+        unit_amount_cents = self._sle_to_usd_cents(bill.amount_due)
+        if unit_amount_cents < 50:
+            return Response({"error": "Stripe minimum is $0.50. Amount is too small for Stripe."}, status=400)
+
+        currency = getattr(settings, "STRIPE_CURRENCY", "usd")
+        success_url = "http://localhost:5173/payments/business-license/success?session_id={CHECKOUT_SESSION_ID}"
+        cancel_url = "http://localhost:5173/payments/business-license/cancel"
+
+        payment = Payment.objects.create(
+            bill=bill,
+            amount=bill.amount_due,  # stored in SLE
+            status=PaymentStatus.INITIATED
+        )
+
+        try:
+            session = stripe.checkout.Session.create(
+                mode="payment",
+                payment_method_types=["card"],
+                line_items=[{
+                    "price_data": {
+                        "currency": currency,
+                        "product_data": {"name": f"Business License ({notice.license_year}) - FCC"},
+                        "unit_amount": unit_amount_cents,
+                    },
+                    "quantity": 1
+                }],
+                metadata={
+                    "payment_id": str(payment.id),
+                    "bill_id": str(bill.id),
+                    "notice_id": str(notice.id),
+                    "service_type": ServiceType.BUSINESS_LICENSE,
+                    "user_id": str(user.id),
+                },
+                success_url=success_url,
+                cancel_url=cancel_url,
+            )
+
+            payment.stripe_checkout_session_id = session.id
+            payment.save(update_fields=["stripe_checkout_session_id"])
+
+            return Response(
+                BusinessLicenseCheckoutResponseSerializer({"checkout_url": session.url, "session_id": session.id}).data,
+                status=200
+            )
+
+        except Exception as e:
+            payment.status = PaymentStatus.FAILED
+            payment.save(update_fields=["status"])
+            return Response({"error": str(e)}, status=400)
+
+    @action(detail=False, methods=["get"], url_path="verify")
+    def verify(self, request):
+        ser = VerifySessionSerializer(data=request.query_params)
+        ser.is_valid(raise_exception=True)
+
+        session_id = ser.validated_data["session_id"]
+        user = request.user
+
+        payment = Payment.objects.select_related("bill").filter(
+            stripe_checkout_session_id=session_id,
+            bill__user=user,
+            bill__service_type=ServiceType.BUSINESS_LICENSE,
+        ).first()
+
+        if not payment:
+            return Response({"error": "Payment session not found."}, status=404)
+
+        if payment.status == PaymentStatus.PAID:
+            return Response(PaymentSerializer(payment).data, status=200)
+
+        try:
+            session = stripe.checkout.Session.retrieve(session_id, expand=["payment_intent"])
+            if session.payment_status != "paid":
+                return Response({"status": "NOT_PAID", "payment_status": session.payment_status}, status=200)
+
+            payment_intent_id = session.payment_intent.id if session.payment_intent else None
+            notice_id = int(session.metadata.get("notice_id"))
+
+            notice = BusinessLicenseDemandNotice.objects.select_related("business").filter(id=notice_id, owner=user).first()
+            if not notice:
+                return Response({"error": "Notice not found for this payment."}, status=400)
+
+            with transaction.atomic():
+                payment.status = PaymentStatus.PAID
+                payment.paid_at = timezone.now()
+                payment.stripe_payment_intent_id = payment_intent_id
+                payment.save(update_fields=["status", "paid_at", "stripe_payment_intent_id"])
+
+                bill = payment.bill
+                bill.amount_paid = bill.amount_due
+                bill.status = BillStatus.PAID
+                bill.save(update_fields=["amount_paid", "status"])
+
+                notice.status = DemandNoticeStatus.PAID
+                notice.save(update_fields=["status"])
+
+                receipt_file = build_business_license_receipt_pdf(payment=payment, user=user, bill=bill, notice=notice)
+                payment.receipt_pdf.save(receipt_file.name, receipt_file, save=True)
+
+                # payment notifications (you already attach receipt in these functions)
+                try:
+                    notify_citizen_payment_success(payment=payment, bill=bill, user=user)
+                except Exception as e:
+                    print("[PAYMENT EMAIL ERROR] citizen:", e)
+
+                try:
+                    notify_staff_ward_payment_success(payment=payment, bill=bill, user=user)
+                except Exception as e:
+                    print("[PAYMENT EMAIL ERROR] staff ward:", e)
+
+                try:
+                    notify_admin_payment_success(payment=payment, bill=bill, user=user)
+                except Exception as e:
+                    print("[PAYMENT EMAIL ERROR] admin:", e)
+
+            return Response(PaymentSerializer(payment).data, status=200)
+
+        except Exception as e:
+            return Response({"error": str(e)}, status=400)
+
+class CitizenBusinessViewSet(viewsets.ModelViewSet):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = BusinessSerializer
+
+    def get_queryset(self):
+        return Business.objects.filter(owner=self.request.user).order_by("-created_at")
+
+    def perform_create(self, serializer):
+        serializer.save(owner=self.request.user, ward=getattr(self.request.user, "ward", None))
+
+class CitizenBusinessLicenseNoticeViewSet(viewsets.ModelViewSet):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = BusinessLicenseDemandNoticeSerializer
+
+    def get_queryset(self):
+        return BusinessLicenseDemandNotice.objects.select_related("business").filter(owner=self.request.user).order_by("-created_at")
+
+    
+    def _generate_notice_number(self):
+        year = timezone.now().year
+        ts = timezone.now().strftime("%Y%m%d%H%M%S")
+        return f"FCC-RDN-{year}-{ts}"
+
+    def perform_create(self, serializer):
+        serializer.save(
+            owner=self.request.user, 
+            status=DemandNoticeStatus.SUBMITTED,
+            notice_number=self._generate_notice_number(),
+        )
+
+
+# =========================================================
+# TEMPLATE SESSION MIXIN (same as complaints)
+# =========================================================
+
+class SessionStaffUserMixin:
+    """
+    Attaches the logged-in staff/admin user object to request.user
+    using session staff_user_id saved at login.
+    """
+    def dispatch(self, request, *args, **kwargs):
+        staff_user_id = request.session.get("staff_user_id")
+        if not staff_user_id:
+            request.session.flush()
+            return redirect("staff_login")
+
+        user = User.objects.filter(id=staff_user_id).first()
+        if not user:
+            request.session.flush()
+            return redirect("staff_login")
+
+        request.user = user
+        return super().dispatch(request, *args, **kwargs)
+
+# =========================================================
+# SHARED FILTER HELPERS
+# =========================================================
+
+def _apply_payment_filters(qs, request, allow_admin_filters: bool):
+    q = request.GET.get("q", "").strip()
+    service_type = request.GET.get("service_type", "").strip()
+    status = request.GET.get("status", "").strip()
+
+    date_from = parse_date(request.GET.get("date_from", "") or "")
+    date_to = parse_date(request.GET.get("date_to", "") or "")
+
+    if q:
+        qs = qs.filter(
+            Q(id__icontains=q) |
+            Q(bill__user__first_name__icontains=q) |
+            Q(bill__user__last_name__icontains=q) |
+            Q(bill__user__email__icontains=q) |
+            Q(stripe_payment_intent_id__icontains=q) |
+            Q(stripe_checkout_session_id__icontains=q)
+        )
+
+    if service_type:
+        qs = qs.filter(bill__service_type=service_type)
+
+    if status:
+        qs = qs.filter(status=status)
+
+    if date_from:
+        qs = qs.filter(created_at__date__gte=date_from)
+
+    if date_to:
+        qs = qs.filter(created_at__date__lte=date_to)
+
+    if allow_admin_filters:
+        ward_id = request.GET.get("ward", "").strip()
+        if ward_id:
+            qs = qs.filter(bill__user__ward_id=ward_id)
+
+    return qs
+
+def _apply_bill_filters(qs, request, allow_admin_filters: bool):
+    q = request.GET.get("q", "").strip()
+    service_type = request.GET.get("service_type", "").strip()
+    status = request.GET.get("status", "").strip()
+
+    date_from = parse_date(request.GET.get("date_from", "") or "")
+    date_to = parse_date(request.GET.get("date_to", "") or "")
+
+    if q:
+        qs = qs.filter(
+            Q(id__icontains=q) |
+            Q(user__first_name__icontains=q) |
+            Q(user__last_name__icontains=q) |
+            Q(user__email__icontains=q)
+        )
+
+    if service_type:
+        qs = qs.filter(service_type=service_type)
+
+    if status:
+        qs = qs.filter(status=status)
+
+    if date_from:
+        qs = qs.filter(created_at__date__gte=date_from)
+
+    if date_to:
+        qs = qs.filter(created_at__date__lte=date_to)
+
+    if allow_admin_filters:
+        ward_id = request.GET.get("ward", "").strip()
+        if ward_id:
+            qs = qs.filter(user__ward_id=ward_id)
+
+    return qs
+
+# =========================================================
+# STAFF (WARD-BASED): PAYMENTS + BILLS
+# =========================================================
+
+class StaffPaymentListView(SessionStaffUserMixin, KnoxSessionRequiredMixin, RoleRequiredMixin, ListView):
+    template_name = "dashboards/staff/payments.html"
+    context_object_name = "payments"
+    required_role = "STAFF"
+    paginate_by = 10
+
+    def get_queryset(self):
+        qs = Payment.objects.select_related("bill", "bill__user").filter(
+            bill__user__ward=self.request.user.ward
+        ).order_by("-created_at")
+
+        qs = _apply_payment_filters(qs, self.request, allow_admin_filters=False)
+        return qs
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["service_types"] = ServiceType.choices
+        ctx["payment_statuses"] = PaymentStatus.choices
+        return ctx
+
+class StaffPaymentDetailView(SessionStaffUserMixin, KnoxSessionRequiredMixin, RoleRequiredMixin, DetailView):
+    template_name = "dashboards/staff/payment_detail.html"
+    model = Payment
+    context_object_name = "payment"
+    required_role = "STAFF"
+
+    def get_queryset(self):
+        return Payment.objects.select_related("bill", "bill__user").filter(
+            bill__user__ward=self.request.user.ward
+        )
+
+class StaffBillListView(SessionStaffUserMixin, KnoxSessionRequiredMixin, RoleRequiredMixin, ListView):
+    template_name = "dashboards/staff/bills.html"
+    context_object_name = "bills"
+    required_role = "STAFF"
+    paginate_by = 10
+
+    def get_queryset(self):
+        qs = Bill.objects.select_related("user").filter(
+            user__ward=self.request.user.ward
+        ).order_by("-created_at")
+
+        qs = _apply_bill_filters(qs, self.request, allow_admin_filters=False)
+        return qs
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["service_types"] = ServiceType.choices
+        ctx["bill_statuses"] = BillStatus.choices
+        return ctx
+
+class StaffBillDetailView(SessionStaffUserMixin, KnoxSessionRequiredMixin, RoleRequiredMixin, DetailView):
+    template_name = "dashboards/staff/bill_detail.html"
+    model = Bill
+    context_object_name = "bill"
+    required_role = "STAFF"
+
+    def get_queryset(self):
+        return Bill.objects.select_related("user").prefetch_related("payments").filter(
+            user__ward=self.request.user.ward
+        )
+
+class StaffBusinessNoticeListView(SessionStaffUserMixin, KnoxSessionRequiredMixin, RoleRequiredMixin, ListView):
+    template_name = "dashboards/staff/business_notices.html"
+    context_object_name = "notices"
+    required_role = "STAFF"
+    paginate_by = 10
+
+    def get_queryset(self):
+        qs = BusinessLicenseDemandNotice.objects.select_related("business", "owner").filter(
+            owner__ward=self.request.user.ward
+        ).order_by("-created_at")
+
+        q = self.request.GET.get("q", "").strip()
+        status_val = self.request.GET.get("status", "").strip()
+
+        if q:
+            qs = qs.filter(
+                Q(notice_number__icontains=q) |
+                Q(business_business_name_icontains=q) |
+                Q(owner_first_name_icontains=q) |
+                Q(owner_last_name_icontains=q)
+            )
+        if status_val:
+            qs = qs.filter(status=status_val)
+
+        return qs
+
+class StaffBusinessNoticeDetailView(SessionStaffUserMixin, KnoxSessionRequiredMixin, RoleRequiredMixin, DetailView):
+    template_name = "dashboards/staff/business_notice_detail.html"
+    model = BusinessLicenseDemandNotice
+    context_object_name = "notice"
+    required_role = "STAFF"
+
+    def get_queryset(self):
+        return BusinessLicenseDemandNotice.objects.select_related("business", "owner").filter(
+            owner__ward=self.request.user.ward
+        )
+
+class StaffBusinessNoticeUpdateView(SessionStaffUserMixin, KnoxSessionRequiredMixin, RoleRequiredMixin, UpdateView):
+    template_name = "dashboards/staff/business_notice_update.html"
+    model = BusinessLicenseDemandNotice
+    context_object_name = "notice"
+    form_class = StaffBusinessNoticeVerifyForm
+    required_role = "STAFF"
+
+    def get_queryset(self):
+        return BusinessLicenseDemandNotice.objects.select_related("business", "owner").filter(
+            owner__ward=self.request.user.ward
+        )
+
+    def form_valid(self, form):
+        notice = form.save(commit=False)
+
+        if notice.status in [DemandNoticeStatus.VERIFIED, DemandNoticeStatus.REJECTED]:
+            notice.verified_by = self.request.user
+            notice.verified_at = timezone.now()
+
+        if notice.status != DemandNoticeStatus.REJECTED:
+            notice.reject_reason = ""
+
+        notice.save()
+        messages.success(self.request, "Demand Notice updated successfully.")
+        return redirect("staff_business_notice_detail", pk=notice.pk)
+
+# =========================================================
+# ADMIN (ALL DATA): PAYMENTS + BILLS
+# =========================================================
+
+class AdminPaymentListView(SessionStaffUserMixin, KnoxSessionRequiredMixin, RoleRequiredMixin, ListView):
+    template_name = "dashboards/admin/payments.html"
+    context_object_name = "payments"
+    required_role = "ADMIN"
+    paginate_by = 15
+
+    def get_queryset(self):
+        qs = Payment.objects.select_related("bill", "bill__user").all().order_by("-created_at")
+        qs = _apply_payment_filters(qs, self.request, allow_admin_filters=True)
+        return qs
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["service_types"] = ServiceType.choices
+        ctx["payment_statuses"] = PaymentStatus.choices
+        # if you want ward dropdown in template:
+        # ctx["wards"] = Ward.objects.all().order_by("name")
+        return ctx
+
+class AdminPaymentDetailView(SessionStaffUserMixin, KnoxSessionRequiredMixin, RoleRequiredMixin, DetailView):
+    template_name = "dashboards/admin/payment_detail.html"
+    model = Payment
+    context_object_name = "payment"
+    required_role = "ADMIN"
+
+    def get_queryset(self):
+        return Payment.objects.select_related("bill", "bill__user").all()
+
+class AdminBillListView(SessionStaffUserMixin, KnoxSessionRequiredMixin, RoleRequiredMixin, ListView):
+    template_name = "dashboards/admin/bills.html"
+    context_object_name = "bills"
+    required_role = "ADMIN"
+    paginate_by = 15
+
+    def get_queryset(self):
+        qs = Bill.objects.select_related("user").all().order_by("-created_at")
+        qs = _apply_bill_filters(qs, self.request, allow_admin_filters=True)
+        return qs
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["service_types"] = ServiceType.choices
+        ctx["bill_statuses"] = BillStatus.choices
+        # ctx["wards"] = Ward.objects.all().order_by("name")
+        return ctx
+
+class AdminBillDetailView(SessionStaffUserMixin, KnoxSessionRequiredMixin, RoleRequiredMixin, DetailView):
+    template_name = "dashboards/admin/bill_detail.html"
+    model = Bill
+    context_object_name = "bill"
+    required_role = "ADMIN"
+
+    def get_queryset(self):
+        return Bill.objects.select_related("user").prefetch_related("payments").all()
+
+
+# =========================================================
+# ADMIN — BUSINESS LICENSE NOTICES (ALL WARDS)
+# =========================================================
+
+class AdminBusinessNoticeListView(SessionStaffUserMixin, KnoxSessionRequiredMixin, RoleRequiredMixin, ListView):
+    template_name = "dashboards/admin/business_notices.html"
+    context_object_name = "notices"
+    required_role = "ADMIN"
+    paginate_by = 10
+
+    def get_queryset(self):
+        qs = BusinessLicenseDemandNotice.objects.select_related("business", "owner").order_by("-created_at")
+
+        q = self.request.GET.get("q", "").strip()
+        status_val = self.request.GET.get("status", "").strip()
+        ward_id = self.request.GET.get("ward", "").strip()
+
+        if q:
+            qs = qs.filter(
+                Q(notice_number__icontains=q) |
+                Q(business__business_name__icontains=q) |
+                Q(owner__first_name__icontains=q) |
+                Q(owner__last_name__icontains=q) |
+                Q(owner__email__icontains=q)
+            )
+
+        if status_val:
+            qs = qs.filter(status=status_val)
+
+        if ward_id:
+            qs = qs.filter(owner__ward_id=ward_id)
+
+        return qs
+
+
+class AdminBusinessNoticeDetailView(SessionStaffUserMixin, KnoxSessionRequiredMixin, RoleRequiredMixin, DetailView):
+    template_name = "dashboards/admin/business_notice_detail.html"
+    model = BusinessLicenseDemandNotice
+    context_object_name = "notice"
+    required_role = "ADMIN"
+
+    def get_queryset(self):
+        return BusinessLicenseDemandNotice.objects.select_related("business", "owner", "bill")
+
+
+class AdminBusinessNoticeUpdateView(SessionStaffUserMixin, KnoxSessionRequiredMixin, RoleRequiredMixin, UpdateView):
+    template_name = "dashboards/admin/business_notice_update.html"
+    model = BusinessLicenseDemandNotice
+    context_object_name = "notice"
+    form_class = StaffBusinessNoticeVerifyForm  # reuse
+    required_role = "ADMIN"
+
+    def form_valid(self, form):
+        notice = form.save(commit=False)
+        notice.verified_by = self.request.user
+        notice.verified_at = timezone.now()
+
+        # if rejecting, reason is required (form enforces)
+        if notice.status != "REJECTED":
+            notice.reject_reason = ""
+
+        notice.save()
+        messages.success(self.request, "Demand Notice updated successfully.")
+        return redirect("admin_business_notice_detail", pk=notice.pk)
+
+
 
 

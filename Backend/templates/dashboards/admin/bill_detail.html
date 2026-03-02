@@ -1,0 +1,74 @@
+{% extends "dashboards/admin/admin-dashboard.html" %}
+{% block title %}Bill Detail - Admin{% endblock %}
+
+{% block content %}
+<header class="mb-8">
+  <h1 class="text-3xl font-bold text-gray-900">Bill Detail</h1>
+  <p class="text-gray-500">Bill #{{ bill.id }} — {{ bill.service_type }}</p>
+</header>
+
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
+  <div class="grid md:grid-cols-2 gap-4">
+    <div>
+      <p class="text-sm text-gray-500">Citizen</p>
+      <p class="font-semibold text-gray-900">{{ bill.user.first_name }} {{ bill.user.last_name }} ({{ bill.user.email }})</p>
+    </div>
+    <div>
+      <p class="text-sm text-gray-500">Ward</p>
+      <p class="font-semibold text-gray-900">{{ bill.user.ward|default:"-" }}</p>
+    </div>
+    <div>
+      <p class="text-sm text-gray-500">Amount Due</p>
+      <p class="font-semibold text-gray-900">SLE {{ bill.amount_due }}</p>
+    </div>
+    <div>
+      <p class="text-sm text-gray-500">Amount Paid</p>
+      <p class="font-semibold text-gray-900">SLE {{ bill.amount_paid }}</p>
+    </div>
+    <div>
+      <p class="text-sm text-gray-500">Status</p>
+      <p class="font-semibold text-gray-900">{{ bill.get_status_display }}</p>
+    </div>
+    <div>
+      <p class="text-sm text-gray-500">Due Date</p>
+      <p class="font-semibold text-gray-900">{{ bill.due_date|default:"-" }}</p>
+    </div>
+  </div>
+</div>
+
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+  <h2 class="text-lg font-bold text-gray-900 mb-4">Payments on this Bill</h2>
+
+  <div class="overflow-x-auto">
+    <table class="w-full text-left border-collapse">
+      <thead class="bg-gray-50 border-b border-gray-200">
+        <tr>
+          <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Payment ID</th>
+          <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+          <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+          <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Paid At</th>
+          <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-200">
+        {% for p in bill.payments.all %}
+        <tr>
+          <td class="px-6 py-4 text-sm font-semibold text-gray-800">#{{ p.id }}</td>
+          <td class="px-6 py-4 text-sm text-gray-700">SLE {{ p.amount }}</td>
+          <td class="px-6 py-4 text-sm text-gray-700">{{ p.get_status_display }}</td>
+          <td class="px-6 py-4 text-sm text-gray-700">{{ p.paid_at|default:"-" }}</td>
+          <td class="px-6 py-4">
+            <a href="{% url 'admin_payment_detail' p.id %}"
+              class="text-blue-600 hover:text-blue-900 p-2 rounded hover:bg-blue-50 inline-flex items-center">
+              <i class="fas fa-eye"></i>
+            </a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" class="px-6 py-10 text-center text-gray-500">No payments yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

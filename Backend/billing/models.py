@@ -160,3 +160,71 @@ class WasteCoverage(models.Model):
 
     def __str__(self):
         return f"{self.user} - {self.plan} - {self.status}"
+
+
+class BusinessCategory(models.TextChoices):
+    CONSUMER_STAPLE = "CONSUMER_STAPLE", "Consumer Staple"
+    INDUSTRY_SERVICES = "INDUSTRY_SERVICES", "Industry / Services"
+    FINANCIAL_SERVICES = "FINANCIAL_SERVICES", "Financial Services"
+    HEALTH_EDUCATION = "HEALTH_EDUCATION", "Health / Education"
+    HOSPITALITY = "HOSPITALITY", "Hospitality"
+    OTHER = "OTHER", "Other"
+
+
+class Business(models.Model):
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="businesses")
+    business_name = models.CharField(max_length=200)
+    category = models.CharField(max_length=40, choices=BusinessCategory.choices)
+    ward = models.ForeignKey(Ward, on_delete=models.SET_NULL, null=True, blank=True)
+    address = models.CharField(max_length=255, blank=True, null=True)
+
+    # optional: OARG reg info
+    national_reg_number = models.CharField(max_length=80, blank=True, null=True)
+
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        return self.business_name
+
+
+class DemandNoticeStatus(models.TextChoices):
+    SUBMITTED = "SUBMITTED", "Submitted"
+    VERIFIED = "VERIFIED", "Verified"
+    REJECTED = "REJECTED", "Rejected"
+    PAID = "PAID", "Paid"
+
+
+class BusinessLicenseDemandNotice(models.Model):
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="business_license_notices")
+    business = models.ForeignKey(Business, on_delete=models.CASCADE, related_name="demand_notices")
+
+    notice_number = models.CharField(max_length=60)
+    license_year = models.PositiveIntegerField()
+
+    amount_due = models.DecimalField(max_digits=12, decimal_places=2)  # stored in SLE
+    due_date = models.DateField(null=True, blank=True)
+
+    status = models.CharField(max_length=20, choices=DemandNoticeStatus.choices, default=DemandNoticeStatus.SUBMITTED)
+
+    verified_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="verified_business_license_notices"
+    )
+    verified_at = models.DateTimeField(null=True, blank=True)
+    reject_reason = models.TextField(blank=True, null=True)
+
+    # optional: link to the bill (so staff can open quickly)
+    bill = models.OneToOneField("Bill", on_delete=models.SET_NULL, null=True, blank=True, related_name="business_license_notice")
+
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        unique_together = ("notice_number", "license_year")
+
+    def __str__(self):
+        return f"RDN {self.notice_number} ({self.license_year}) - {self.status}"
+

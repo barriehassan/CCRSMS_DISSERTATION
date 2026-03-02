@@ -1,0 +1,93 @@
+{% extends "dashboards/admin/admin-dashboard.html" %}
+{% block title %}Business License Notices - Admin{% endblock %}
+
+{% block content %}
+<header class="mb-8">
+  <h1 class="text-3xl font-bold text-gray-900">Business License Notices</h1>
+  <p class="text-gray-500">All RDN submissions across all wards.</p>
+</header>
+
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 mb-8 p-6">
+  <form method="get" class="flex flex-col md:flex-row gap-4 items-center justify-between">
+
+    <div class="relative w-full md:w-1/3">
+      <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+      <input type="text" name="q" value="{{ request.GET.q|default:'' }}"
+        placeholder="Search notice, business, citizen..."
+        class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+    </div>
+
+    <div class="flex items-center gap-3 w-full md:w-auto overflow-x-auto">
+      <i class="fas fa-filter text-gray-500"></i>
+
+      <select name="status"
+        class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+        <option value="">All Status</option>
+        <option value="SUBMITTED" {% if request.GET.status == "SUBMITTED" %}selected{% endif %}>Submitted</option>
+        <option value="VERIFIED" {% if request.GET.status == "VERIFIED" %}selected{% endif %}>Verified</option>
+        <option value="REJECTED" {% if request.GET.status == "REJECTED" %}selected{% endif %}>Rejected</option>
+        <option value="PAID" {% if request.GET.status == "PAID" %}selected{% endif %}>Paid</option>
+      </select>
+
+      <button type="submit"
+        class="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors">
+        Apply
+      </button>
+
+      <a href="{% url 'admin_business_notice_list' %}"
+        class="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors">
+        Reset
+      </a>
+    </div>
+  </form>
+</div>
+
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="w-full text-left border-collapse">
+      <thead class="bg-gray-50 border-b border-gray-200">
+        <tr>
+          <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">RDN</th>
+          <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Business</th>
+          <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Citizen</th>
+          <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Year</th>
+          <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+          <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+          <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+        </tr>
+      </thead>
+
+      <tbody class="bg-white divide-y divide-gray-200">
+        {% for n in notices %}
+        <tr class="hover:bg-gray-50 transition-colors">
+          <td class="px-6 py-4 text-sm font-semibold text-gray-800">{{ n.notice_number }}</td>
+          <td class="px-6 py-4 text-sm text-gray-700">{{ n.business.business_name }}</td>
+          <td class="px-6 py-4 text-sm text-gray-700">{{ n.owner.first_name }} {{ n.owner.last_name }}</td>
+          <td class="px-6 py-4 text-sm text-gray-600">{{ n.license_year }}</td>
+          <td class="px-6 py-4 text-sm text-gray-700">SLE {{ n.amount_due }}</td>
+          <td class="px-6 py-4">
+            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+              {% if n.status == 'PAID' %}bg-green-100 text-green-700
+              {% elif n.status == 'VERIFIED' %}bg-blue-100 text-blue-700
+              {% elif n.status == 'REJECTED' %}bg-red-100 text-red-700
+              {% else %}bg-yellow-100 text-yellow-700{% endif %}">
+              {{ n.get_status_display }}
+            </span>
+          </td>
+          <td class="px-6 py-4 text-sm font-medium">
+            <a href="{% url 'admin_business_notice_detail' n.id %}"
+              class="text-blue-600 hover:text-blue-900 p-2 rounded hover:bg-blue-50 inline-flex items-center">
+              <i class="fas fa-eye"></i>
+            </a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="7" class="px-6 py-10 text-center text-gray-500">No notices found.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

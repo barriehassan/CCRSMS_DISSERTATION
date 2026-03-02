@@ -442,3 +442,121 @@ def build_waste_collection_receipt_pdf(payment, user, bill, coverage):
 
     buffer.seek(0)
     return ContentFile(buffer.read(), name=f"waste_receipt_{payment.id}.pdf")
+
+def build_business_license_receipt_pdf(payment, user, bill, notice):
+    buffer = io.BytesIO()
+    page_w, page_h = A5
+    p = canvas.Canvas(buffer, pagesize=A5)
+
+    def safe(v):
+        return (str(v) if v is not None else "").strip()
+
+    margin = 26
+    x_left = margin
+    x_right = page_w - margin
+    y = page_h - margin
+
+    # Logo
+    logo_path = os.path.join(settings.BASE_DIR, "uploads", "receipts", "template", "fcc_logo.png")
+    if os.path.exists(logo_path):
+        logo = ImageReader(logo_path)
+        logo_w, logo_h = 70, 70
+        p.drawImage(logo, (page_w - logo_w) / 2, y - logo_h, width=logo_w, height=logo_h, mask="auto")
+    y -= 80
+
+    p.setFont("Helvetica-Bold", 12)
+    p.drawCentredString(page_w / 2, y, "FREETOWN CITY COUNCIL")
+    y -= 18
+    p.setFont("Helvetica-Bold", 13)
+    p.drawCentredString(page_w / 2, y, "BUSINESS LICENSE RECEIPT")
+    y -= 12
+
+    p.setLineWidth(1)
+    p.line(x_left, y, x_right, y)
+    y -= 18
+
+    receipt_no = f"{payment.id:06d}"
+    dt = payment.paid_at or timezone.now()
+    date_str = dt.strftime("%d/%m/%Y")
+    time_str = dt.strftime("%I:%M %p")
+
+    amount_sle = Decimal(payment.amount or bill.amount_due or 0)
+    amount_str = f"SLE {amount_sle:.2f}"
+
+    txn_ref = safe(payment.stripe_payment_intent_id or payment.stripe_checkout_session_id)
+
+    # amount + receipt no
+    p.setFont("Helvetica-Bold", 14)
+    p.drawString(x_left, y, amount_str)
+    p.setFont("Helvetica-Bold", 11)
+    p.drawRightString(x_right, y + 2, f"FCC {receipt_no}")
+    y -= 22
+
+    # details
+    p.setFont("Helvetica", 10)
+    p.drawString(x_left, y, "Holder's Name:")
+    p.setFont("Helvetica-Bold", 10)
+    p.drawString(x_left + 95, y, safe(f"{user.first_name} {user.last_name}") or "-")
+    y -= 16
+
+    p.setFont("Helvetica", 10)
+    p.drawString(x_left, y, "Business Name:")
+    p.setFont("Helvetica-Bold", 10)
+    p.drawString(x_left + 95, y, safe(notice.business.business_name) or "-")
+    y -= 16
+
+    p.setFont("Helvetica", 10)
+    p.drawString(x_left, y, "RDN / Notice No:")
+    p.setFont("Helvetica-Bold", 10)
+    p.drawString(x_left + 95, y, safe(notice.notice_number) or "-")
+    y -= 16
+
+    p.setFont("Helvetica", 10)
+    p.drawString(x_left, y, "License Year:")
+    p.setFont("Helvetica-Bold", 10)
+    p.drawString(x_left + 95, y, safe(notice.license_year) or "-")
+    y -= 16
+
+    p.setFont("Helvetica", 9)
+    p.drawString(x_left, y, f"Date: {date_str}    Time: {time_str}")
+    y -= 14
+
+    p.setFont("Helvetica", 9)
+    p.drawString(x_left, y, "Transaction Ref:")
+    p.setFont("Helvetica-Bold", 8.5)
+    p.drawString(x_left + 95, y, txn_ref or "-")
+    y -= 18
+
+    p.setLineWidth(0.8)
+    p.line(x_left, y, x_right, y)
+    y -= 18
+
+    processed_by = getattr(settings, "RECEIPT_PROCESSED_BY", "CCRSMS Online Payment")
+    designation = getattr(settings, "RECEIPT_DESIGNATION", "F.C.C")
+
+    p.setFont("Helvetica", 10)
+    p.drawString(x_left, y, "Processed By:")
+    p.setFont("Helvetica-Bold", 10)
+    p.drawString(x_left + 95, y, safe(processed_by))
+    y -= 16
+
+    p.setFont("Helvetica", 10)
+    p.drawString(x_left, y, "Designation:")
+    p.setFont("Helvetica-Bold", 10)
+    p.drawString(x_left + 95, y, safe(designation))
+    y -= 28
+
+    p.line(x_left, y, x_left + 180, y)
+    p.setFont("Helvetica", 9)
+    p.drawString(x_left, y - 12, "Authorized Signature")
+
+    p.setFont("Helvetica-Oblique", 8)
+    p.setFillColor(colors.grey)
+    p.drawCentredString(page_w / 2, margin - 6, "System-generated receipt (CCRSMS) — Freetown City Council")
+    p.setFillColor(colors.black)
+
+    p.showPage()
+    p.save()
+
+    buffer.seek(0)
+    return ContentFile(buffer.read(), name=f"business_license_receipt_{payment.id}.pdf")

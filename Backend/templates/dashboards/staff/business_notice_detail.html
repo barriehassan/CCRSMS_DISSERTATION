@@ -1,0 +1,36 @@
+{% extends "dashboards/staff/staff-dashboard.html" %}
+{% block title %}Notice Detail{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="text-3xl font-bold text-gray-900">Demand Notice Detail</h1>
+      <p class="text-gray-500">RDN: <span class="font-semibold">{{ notice.notice_number }}</span></p>
+    </div>
+
+    <a href="{% url 'staff_business_notice_update' notice.id %}"
+       class="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700">
+      Update
+    </a>
+  </div>
+
+  <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-4">
+    <div class="grid md:grid-cols-2 gap-4">
+      <div><p class="text-sm text-gray-500">Business</p><p class="font-semibold">{{ notice.business.business_name }}</p></div>
+      <div><p class="text-sm text-gray-500">Citizen</p><p class="font-semibold">{{ notice.owner.first_name }} {{ notice.owner.last_name }}</p></div>
+      <div><p class="text-sm text-gray-500">Year</p><p class="font-semibold">{{ notice.license_year }}</p></div>
+      <div><p class="text-sm text-gray-500">Amount Due</p><p class="font-semibold">SLE {{ notice.amount_due }}</p></div>
+      <div><p class="text-sm text-gray-500">Status</p><p class="font-semibold">{{ notice.get_status_display }}</p></div>
+      <div><p class="text-sm text-gray-500">Due Date</p><p class="font-semibold">{{ notice.due_date|default:"-" }}</p></div>
+    </div>
+
+    {% if notice.reject_reason %}
+      <div class="p-4 rounded-lg bg-red-50 border border-red-200 text-red-700">
+        <p class="font-semibold">Reject Reason</p>
+        <p class="text-sm">{{ notice.reject_reason }}</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

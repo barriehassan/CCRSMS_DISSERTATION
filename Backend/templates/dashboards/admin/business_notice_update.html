@@ -1,0 +1,46 @@
+{% extends "dashboards/admin/admin-dashboard.html" %}
+{% block title %}Update Business Notice - Admin{% endblock %}
+
+{% block content %}
+<header class="mb-8">
+  <h1 class="text-3xl font-bold text-gray-900">Update Demand Notice</h1>
+  <p class="text-gray-500">RDN: {{ notice.notice_number }}</p>
+</header>
+
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 max-w-3xl">
+  <form method="post" class="space-y-4">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+      {{ form.status }}
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Amount Due (SLE)</label>
+      {{ form.amount_due }}
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
+      {{ form.due_date }}
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Reject Reason</label>
+      {{ form.reject_reason }}
+    </div>
+
+    <div class="flex gap-3">
+      <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700">
+        Save
+      </button>
+      <a href="{% url 'admin_business_notice_detail' notice.id %}"
+         class="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-50">
+        Cancel
+      </a>
+    </div>
+  </form>
+</div>
+{% endblock %}

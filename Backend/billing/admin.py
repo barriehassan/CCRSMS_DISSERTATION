@@ -11,3 +11,6 @@ admin.site.register(WasteServiceProvider)
 admin.site.register(WasteBlockProvider)
 admin.site.register(WasteBlock)
 admin.site.register(WasteWardMeta)
+admin.site.register(Business)
+admin.site.register(BusinessLicenseDemandNotice)
+

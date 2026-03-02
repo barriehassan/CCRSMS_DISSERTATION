@@ -1,7 +1,15 @@
 from rest_framework import serializers
 from .models import Bill, Payment, ServiceType
 from decimal import Decimal
-from .models import WastePlan, WasteCoverage, WasteServiceProvider
+from .models import (
+    WastePlan, 
+    WasteCoverage, 
+    WasteServiceProvider,
+    Business,
+    BusinessLicenseDemandNotice,
+    DemandNoticeStatus,
+
+)
 
 
 class BillSerializer(serializers.ModelSerializer):
@@ -68,12 +76,10 @@ class WastePlanSerializer(serializers.ModelSerializer):
         model = WastePlan
         fields = ("id", "name", "interval", "price", "is_active")
 
-
 class WasteServiceProviderSerializer(serializers.ModelSerializer):
     class Meta:
         model = WasteServiceProvider
         fields = ("id", "name", "phone", "email")
-
 
 class WasteCoverageSerializer(serializers.ModelSerializer):
     plan = WastePlanSerializer(read_only=True)
@@ -91,7 +97,6 @@ class WasteCoverageSerializer(serializers.ModelSerializer):
             "created_at",
         )
 
-
 class WasteCheckoutSerializer(serializers.Serializer):
     plan_id = serializers.IntegerField()
 
@@ -99,4 +104,37 @@ class WasteCheckoutSerializer(serializers.Serializer):
         if not WastePlan.objects.filter(id=value, is_active=True).exists():
             raise serializers.ValidationError("Invalid or inactive plan.")
         return value
+
+class BusinessSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Business
+        fields = "__all__"
+        read_only_fields = ("owner", "created_at")
+
+class BusinessLicenseDemandNoticeSerializer(serializers.ModelSerializer):
+    business_name = serializers.CharField(source="business.business_name", read_only=True)
+
+    class Meta:
+        model = BusinessLicenseDemandNotice
+        fields = "__all__"
+        read_only_fields = (
+            "owner", "status", "verified_by", "verified_at",
+            "reject_reason", "created_at", "bill", "notice_number"
+        )
+    
+    def validate_business(self, value):
+        # Ensure the business belongs to the user
+        user = self.context["request"].user
+        if value.owner != user:
+            raise serializers.ValidationError("You can only create a notice for your own business.")
+        return value
+
+class BusinessLicenseCheckoutSerializer(serializers.Serializer):
+    notice_id = serializers.IntegerField()
+
+class BusinessLicenseCheckoutResponseSerializer(serializers.Serializer):
+    checkout_url = serializers.URLField()
+    session_id = serializers.CharField()
+
+
 

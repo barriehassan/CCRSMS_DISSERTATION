@@ -1,0 +1,123 @@
+{% extends "dashboards/staff/staff-dashboard.html" %}
+
+{% block title %}Bill Detail - Staff Portal{% endblock %}
+
+{% block content %}
+<header class="mb-8 flex items-center justify-between">
+  <div>
+    <h1 class="text-3xl font-bold text-gray-900">Bill Detail</h1>
+    <p class="text-gray-500">Bill #{{ bill.id }} • {{ bill.get_service_type_display }}</p>
+  </div>
+  <a href="{% url 'staff_bill_list' %}"
+    class="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors">
+    <i class="fas fa-arrow-left mr-2"></i>Back
+  </a>
+</header>
+
+<div class="grid lg:grid-cols-3 gap-8">
+  <!-- Bill Summary -->
+  <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+    <h3 class="text-lg font-bold text-gray-900 mb-4">Bill Summary</h3>
+
+    <div class="grid md:grid-cols-2 gap-4">
+      <div class="p-4 rounded-lg border border-gray-100">
+        <p class="text-xs text-gray-500 uppercase">Status</p>
+        <p class="mt-1 font-semibold">
+          <span class="px-3 py-1 rounded-full text-xs font-semibold
+            {% if bill.status == 'PAID' %} bg-green-100 text-green-800
+            {% elif bill.status == 'PARTIAL' %} bg-yellow-100 text-yellow-800
+            {% else %} bg-red-100 text-red-800 {% endif %}">
+            {{ bill.get_status_display }}
+          </span>
+        </p>
+      </div>
+
+      <div class="p-4 rounded-lg border border-gray-100">
+        <p class="text-xs text-gray-500 uppercase">Due Date</p>
+        <p class="mt-1 font-semibold text-gray-900">{{ bill.due_date|default:"-" }}</p>
+      </div>
+
+      <div class="p-4 rounded-lg border border-gray-100">
+        <p class="text-xs text-gray-500 uppercase">Amount Due</p>
+        <p class="mt-1 text-2xl font-bold text-gray-900">{{ bill.amount_due }}</p>
+      </div>
+
+      <div class="p-4 rounded-lg border border-gray-100">
+        <p class="text-xs text-gray-500 uppercase">Amount Paid</p>
+        <p class="mt-1 text-2xl font-bold text-gray-900">{{ bill.amount_paid }}</p>
+      </div>
+
+      <div class="p-4 rounded-lg border border-gray-100">
+        <p class="text-xs text-gray-500 uppercase">Installments</p>
+        <p class="mt-1 font-semibold text-gray-900">
+          {{ bill.installment_count }} / {{ bill.max_installments }}
+          {% if bill.allow_installments %}<span class="text-xs text-gray-500">(Allowed)</span>{% else %}
+          <span class="text-xs text-gray-500">(Not allowed)</span>{% endif %}
+        </p>
+      </div>
+
+      <div class="p-4 rounded-lg border border-gray-100">
+        <p class="text-xs text-gray-500 uppercase">Created</p>
+        <p class="mt-1 font-semibold text-gray-900">{{ bill.created_at }}</p>
+      </div>
+    </div>
+
+    <div class="mt-8">
+      <h4 class="text-md font-bold text-gray-900 mb-3">Payments on this Bill</h4>
+      <div class="overflow-x-auto border border-gray-200 rounded-xl">
+        <table class="w-full text-left border-collapse">
+          <thead class="bg-gray-50 border-b border-gray-200 text-gray-500 font-semibold text-sm uppercase tracking-wider">
+            <tr>
+              <th class="p-4">Payment ID</th>
+              <th class="p-4">Amount</th>
+              <th class="p-4">Status</th>
+              <th class="p-4">Paid At</th>
+              <th class="p-4 text-right">Receipt</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            {% for p in bill.payments.all %}
+            <tr class="hover:bg-gray-50">
+              <td class="p-4 font-medium text-gray-900">#{{ p.id }}</td>
+              <td class="p-4 text-gray-700">{{ p.amount }}</td>
+              <td class="p-4">
+                <span class="px-2 py-1 rounded-full text-xs font-semibold
+                  {% if p.status == 'PAID' %}bg-green-100 text-green-800
+                  {% elif p.status == 'FAILED' %}bg-red-100 text-red-800
+                  {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                  {{ p.get_status_display }}
+                </span>
+              </td>
+              <td class="p-4 text-gray-500">{{ p.paid_at|default:"-" }}</td>
+              <td class="p-4 text-right">
+                {% if p.receipt_pdf %}
+                  <a href="{{ p.receipt_pdf.url }}" target="_blank"
+                    class="text-blue-600 hover:underline text-sm font-medium">
+                    Download
+                  </a>
+                {% else %}
+                  <span class="text-sm text-gray-400">-</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="p-6 text-center text-gray-500">No payments found for this bill.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Citizen Card -->
+  <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+    <h3 class="text-lg font-bold text-gray-900 mb-4">Citizen</h3>
+    <div class="space-y-2 text-sm text-gray-700">
+      <p><span class="font-semibold">Name:</span> {{ bill.user.first_name }} {{ bill.user.last_name }}</p>
+      <p><span class="font-semibold">Email:</span> {{ bill.user.email }}</p>
+      <p><span class="font-semibold">Ward:</span> {{ bill.user.ward }}</p>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

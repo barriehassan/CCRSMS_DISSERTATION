@@ -1,0 +1,127 @@
+{% extends "dashboards/admin/admin-dashboard.html" %}
+{% block title %}Payments - Admin Portal{% endblock %}
+
+{% block content %}
+<header class="mb-8">
+  <h1 class="text-3xl font-bold text-gray-900">Payments</h1>
+  <p class="text-gray-500">All payments across all citizens and services.</p>
+</header>
+
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 mb-8 p-6">
+  <form method="get" class="flex flex-col md:flex-row gap-4 items-center justify-between">
+
+    <div class="relative w-full md:w-1/3">
+      <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+      <input type="text" name="q" value="{{ request.GET.q|default:'' }}"
+        placeholder="Search by payment, bill, citizen, stripe ref..."
+        class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+    </div>
+
+    <div class="flex items-center gap-3 w-full md:w-auto overflow-x-auto">
+      <i class="fas fa-filter text-gray-500"></i>
+
+      <select name="service_type"
+        class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+        <option value="">All Services</option>
+        <option value="LOCAL_TAX" {% if request.GET.service_type == "LOCAL_TAX" %}selected{% endif %}>Local Tax</option>
+        <option value="CITY_RATE" {% if request.GET.service_type == "CITY_RATE" %}selected{% endif %}>City Rate</option>
+        <option value="WASTE_COLLECTION" {% if request.GET.service_type == "WASTE_COLLECTION" %}selected{% endif %}>Waste Collection</option>
+        <option value="BUSINESS_LICENSE" {% if request.GET.service_type == "BUSINESS_LICENSE" %}selected{% endif %}>Business License</option>
+      </select>
+
+      <select name="status"
+        class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+        <option value="">All Status</option>
+        <option value="INITIATED" {% if request.GET.status == "INITIATED" %}selected{% endif %}>Initiated</option>
+        <option value="PAID" {% if request.GET.status == "PAID" %}selected{% endif %}>Paid</option>
+        <option value="FAILED" {% if request.GET.status == "FAILED" %}selected{% endif %}>Failed</option>
+      </select>
+
+      <button type="submit"
+        class="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors">
+        Apply
+      </button>
+
+      <a href="{% url 'admin_payment_list' %}"
+        class="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors">
+        Reset
+      </a>
+    </div>
+  </form>
+</div>
+
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="w-full text-left border-collapse">
+      <thead class="bg-gray-50 border-b border-gray-200">
+        <tr>
+          <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Payment ID</th>
+          <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Bill</th>
+          <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Citizen</th>
+          <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Service</th>
+          <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+          <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+          <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+        </tr>
+      </thead>
+
+      <tbody class="bg-white divide-y divide-gray-200">
+        {% for p in payments %}
+        <tr class="hover:bg-gray-50 transition-colors">
+          <td class="px-6 py-4 text-sm font-semibold text-gray-800">#{{ p.id }}</td>
+          <td class="px-6 py-4 text-sm text-gray-600">#{{ p.bill.id }}</td>
+          <td class="px-6 py-4 text-sm text-gray-700">{{ p.bill.user.first_name }} {{ p.bill.user.last_name }}</td>
+          <td class="px-6 py-4 text-sm text-gray-600">{{ p.bill.service_type }}</td>
+          <td class="px-6 py-4 text-sm text-gray-700">SLE {{ p.amount }}</td>
+          <td class="px-6 py-4">
+            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+              {% if p.status == 'PAID' %}bg-green-100 text-green-700
+              {% elif p.status == 'FAILED' %}bg-red-100 text-red-700
+              {% else %}bg-yellow-100 text-yellow-700{% endif %}">
+              {{ p.get_status_display }}
+            </span>
+          </td>
+          <td class="px-6 py-4 text-sm font-medium">
+            <a href="{% url 'admin_payment_detail' p.id %}"
+              class="text-blue-600 hover:text-blue-900 p-2 rounded hover:bg-blue-50 inline-flex items-center">
+              <i class="fas fa-eye"></i>
+            </a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="7" class="px-6 py-10 text-center text-gray-500">No payments found.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if is_paginated %}
+  <div class="flex items-center justify-between p-4 border-t bg-white">
+    <div class="text-sm text-gray-600">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</div>
+    <div class="flex items-center gap-2">
+      {% if page_obj.has_previous %}
+      <a href="?page=1" class="px-3 py-2 border rounded-lg text-sm hover:bg-gray-50">First</a>
+      <a href="?page={{ page_obj.previous_page_number }}" class="px-3 py-2 border rounded-lg text-sm hover:bg-gray-50">Prev</a>
+      {% else %}
+      <span class="px-3 py-2 border rounded-lg text-sm text-gray-400">First</span>
+      <span class="px-3 py-2 border rounded-lg text-sm text-gray-400">Prev</span>
+      {% endif %}
+
+      <span class="px-3 py-2 rounded-lg bg-blue-50 text-blue-700 border border-blue-200 text-sm font-semibold">
+        {{ page_obj.number }}
+      </span>
+
+      {% if page_obj.has_next %}
+      <a href="?page={{ page_obj.next_page_number }}" class="px-3 py-2 border rounded-lg text-sm hover:bg-gray-50">Next</a>
+      <a href="?page={{ page_obj.paginator.num_pages }}" class="px-3 py-2 border rounded-lg text-sm hover:bg-gray-50">Last</a>
+      {% else %}
+      <span class="px-3 py-2 border rounded-lg text-sm text-gray-400">Next</span>
+      <span class="px-3 py-2 border rounded-lg text-sm text-gray-400">Last</span>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

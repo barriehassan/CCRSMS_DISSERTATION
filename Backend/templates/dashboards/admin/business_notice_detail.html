@@ -1,0 +1,36 @@
+{% extends "dashboards/admin/admin-dashboard.html" %}
+{% block title %}Business Notice Detail - Admin{% endblock %}
+
+{% block content %}
+<header class="mb-8 flex items-center justify-between">
+  <div>
+    <h1 class="text-3xl font-bold text-gray-900">Demand Notice Detail</h1>
+    <p class="text-gray-500">RDN: <span class="font-semibold">{{ notice.notice_number }}</span></p>
+  </div>
+
+  <a href="{% url 'admin_business_notice_update' notice.id %}"
+     class="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700">
+    Update
+  </a>
+</header>
+
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+  <div class="grid md:grid-cols-2 gap-4">
+    <div><p class="text-sm text-gray-500">Business</p><p class="font-semibold">{{ notice.business.business_name }}</p></div>
+    <div><p class="text-sm text-gray-500">Citizen</p><p class="font-semibold">{{ notice.owner.first_name }} {{ notice.owner.last_name }} ({{ notice.owner.email }})</p></div>
+    <div><p class="text-sm text-gray-500">Ward</p><p class="font-semibold">{{ notice.owner.ward|default:"-" }}</p></div>
+    <div><p class="text-sm text-gray-500">Year</p><p class="font-semibold">{{ notice.license_year }}</p></div>
+    <div><p class="text-sm text-gray-500">Amount Due</p><p class="font-semibold">SLE {{ notice.amount_due }}</p></div>
+    <div><p class="text-sm text-gray-500">Due Date</p><p class="font-semibold">{{ notice.due_date|default:"-" }}</p></div>
+    <div><p class="text-sm text-gray-500">Status</p><p class="font-semibold">{{ notice.get_status_display }}</p></div>
+    <div><p class="text-sm text-gray-500">Linked Bill</p><p class="font-semibold">{% if notice.bill %}#{{ notice.bill.id }}{% else %}-{% endif %}</p></div>
+  </div>
+
+  {% if notice.reject_reason %}
+  <div class="mt-6 p-4 rounded-lg bg-red-50 border border-red-200 text-red-700">
+    <p class="font-semibold">Reject Reason</p>
+    <p class="text-sm">{{ notice.reject_reason }}</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

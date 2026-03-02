@@ -1,0 +1,99 @@
+{% extends "dashboards/staff/staff-dashboard.html" %}
+{% block title %}Business License Notices{% endblock %}
+
+{% block content %}
+<header class="mb-8 flex justify-between items-center">
+  <div>
+    <h1 class="text-3xl font-bold text-gray-900">Business License Notices</h1>
+    <p class="text-gray-500">Review and verify RDN submissions from businesses in your ward.</p>
+  </div>
+</header>
+
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
+  <form method="get" class="flex flex-col md:flex-row gap-4 justify-between items-center">
+
+    <div class="relative w-full md:w-1/3">
+      <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+      <input type="text" name="q" value="{{ request.GET.q|default:'' }}"
+        placeholder="Search notice number, business, citizen..."
+        class="pl-10 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+    </div>
+
+    <div class="flex gap-4 w-full md:w-auto">
+      <div class="relative">
+        <select name="status"
+          class="appearance-none bg-white border border-gray-300 px-4 py-2 pr-8 rounded-lg focus:outline-none focus:border-blue-500 cursor-pointer">
+          <option value="">All Status</option>
+          <option value="SUBMITTED" {% if request.GET.status == "SUBMITTED" %}selected{% endif %}>Submitted</option>
+          <option value="VERIFIED" {% if request.GET.status == "VERIFIED" %}selected{% endif %}>Verified</option>
+          <option value="REJECTED" {% if request.GET.status == "REJECTED" %}selected{% endif %}>Rejected</option>
+          <option value="PAID" {% if request.GET.status == "PAID" %}selected{% endif %}>Paid</option>
+        </select>
+        <i class="fas fa-filter absolute right-3 top-3 text-gray-400 pointer-events-none"></i>
+      </div>
+
+      <button type="submit"
+        class="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors">
+        Apply
+      </button>
+
+      <a href="{% url 'staff_business_notice_list' %}"
+        class="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors">
+        Reset
+      </a>
+    </div>
+  </form>
+</div>
+
+<div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
+  <div class="overflow-x-auto">
+    <table class="w-full text-left border-collapse">
+      <thead class="bg-gray-50 border-b border-gray-200 text-gray-500 font-semibold text-sm uppercase tracking-wider">
+        <tr>
+          <th class="p-6">RDN</th>
+          <th class="p-6">Business</th>
+          <th class="p-6">Citizen</th>
+          <th class="p-6">Year</th>
+          <th class="p-6">Amount</th>
+          <th class="p-6">Status</th>
+          <th class="p-6 text-right">Action</th>
+        </tr>
+      </thead>
+
+      <tbody class="divide-y divide-gray-100">
+        {% for n in notices %}
+        <tr class="hover:bg-gray-50 transition-colors">
+          <td class="p-6 font-medium text-gray-900">{{ n.notice_number }}</td>
+          <td class="p-6 text-gray-700">{{ n.business.business_name }}</td>
+          <td class="p-6 text-gray-600">{{ n.owner.first_name }} {{ n.owner.last_name }}</td>
+          <td class="p-6 text-gray-600">{{ n.license_year }}</td>
+          <td class="p-6 text-gray-700 font-semibold">SLE {{ n.amount_due }}</td>
+
+          <td class="p-6">
+            <span class="px-3 py-1 rounded-full text-xs font-semibold
+              {% if n.status == 'SUBMITTED' %}bg-yellow-100 text-yellow-800
+              {% elif n.status == 'VERIFIED' %}bg-blue-100 text-blue-800
+              {% elif n.status == 'PAID' %}bg-green-100 text-green-800
+              {% else %}bg-red-100 text-red-800{% endif %}">
+              {{ n.get_status_display }}
+            </span>
+          </td>
+
+          <td class="p-6 text-right">
+            <a href="{% url 'staff_business_notice_detail' n.id %}"
+              class="border border-gray-300 hover:bg-gray-50 text-gray-700 px-3 py-1 rounded-lg text-sm font-medium inline-flex items-center gap-2 transition-colors">
+              <i class="fas fa-eye"></i> View
+            </a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="7" class="p-10 text-center text-gray-500">No notices found.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}

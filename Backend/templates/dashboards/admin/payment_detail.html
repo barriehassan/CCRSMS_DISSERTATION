@@ -1,0 +1,56 @@
+{% extends "dashboards/admin/admin-dashboard.html" %}
+{% block title %}Payment Detail - Admin{% endblock %}
+
+{% block content %}
+<header class="mb-8">
+  <h1 class="text-3xl font-bold text-gray-900">Payment Detail</h1>
+  <p class="text-gray-500">Payment #{{ payment.id }}</p>
+</header>
+
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+  <div class="grid md:grid-cols-2 gap-4">
+    <div>
+      <p class="text-sm text-gray-500">Citizen</p>
+      <p class="font-semibold text-gray-900">{{ payment.bill.user.first_name }} {{ payment.bill.user.last_name }} ({{ payment.bill.user.email }})</p>
+    </div>
+    <div>
+      <p class="text-sm text-gray-500">Service</p>
+      <p class="font-semibold text-gray-900">{{ payment.bill.service_type }}</p>
+    </div>
+    <div>
+      <p class="text-sm text-gray-500">Bill</p>
+      <p class="font-semibold text-gray-900">#{{ payment.bill.id }}</p>
+    </div>
+    <div>
+      <p class="text-sm text-gray-500">Amount</p>
+      <p class="font-semibold text-gray-900">SLE {{ payment.amount }}</p>
+    </div>
+    <div>
+      <p class="text-sm text-gray-500">Status</p>
+      <p class="font-semibold text-gray-900">{{ payment.get_status_display }}</p>
+    </div>
+    <div>
+      <p class="text-sm text-gray-500">Paid At</p>
+      <p class="font-semibold text-gray-900">{{ payment.paid_at|default:"-" }}</p>
+    </div>
+
+    <div class="md:col-span-2">
+      <p class="text-sm text-gray-500">Stripe Ref</p>
+      <p class="font-semibold text-gray-900 break-words">
+        {{ payment.stripe_payment_intent_id|default:payment.stripe_checkout_session_id|default:"-" }}
+      </p>
+    </div>
+
+    <div class="md:col-span-2">
+      <p class="text-sm text-gray-500">Receipt PDF</p>
+      {% if payment.receipt_pdf %}
+        <a class="text-blue-600 hover:underline font-semibold" href="{{ payment.receipt_pdf.url }}" target="_blank">
+          Open Receipt
+        </a>
+      {% else %}
+        <p class="text-gray-600">-</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
