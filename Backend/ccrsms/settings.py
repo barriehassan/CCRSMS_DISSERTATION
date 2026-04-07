@@ -18,7 +18,7 @@ from environ import Env
 env = Env()
 env.read_env()
 
-OSGEO_PATH = r"C:\Users\Hassan Barrie\AppData\Local\Programs\OSGeo4W\bin"
+OSGEO_PATH = r"C:\Users\hassa\AppData\Local\Programs\OSGeo4W\bin"
 
 os.environ["PATH"] = OSGEO_PATH + ";" + os.environ["PATH"]
 
